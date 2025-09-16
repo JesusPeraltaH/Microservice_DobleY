@@ -25,6 +25,8 @@ export default function SignupPage() {
       ...formData,
       [e.target.name]: e.target.value
     });
+    // Limpiar error cuando el usuario empiece a escribir
+    if (error) setError('');
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -32,27 +34,45 @@ export default function SignupPage() {
     setLoading(true);
     setError('');
 
+    // Validaciones del cliente
     if (formData.password !== formData.confirmPassword) {
-      setError('Passwords do not match');
+      setError('Las contraseñas no coinciden');
+      setLoading(false);
+      return;
+    }
+
+    if (formData.password.length < 6) {
+      setError('La contraseña debe tener al menos 6 caracteres');
       setLoading(false);
       return;
     }
 
     try {
-      // TODO: Implement Supabase user registration
-      // For now, simulate signup
-      if (formData.email && formData.password && formData.firstName) {
-        localStorage.setItem('user', JSON.stringify({ 
+      const response = await fetch('/api/auth/register', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
           email: formData.email,
+          password: formData.password,
           firstName: formData.firstName,
           lastName: formData.lastName
-        }));
-        router.push('/dashboard');
-      } else {
-        setError('Please fill in all required fields');
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Error en el registro');
       }
-    } catch (err) {
-      setError('Registration failed. Please try again.');
+
+      // Guardar usuario en localStorage y redirigir
+      localStorage.setItem('user', JSON.stringify(data.user));
+      router.push('/dashboard');
+
+    } catch (err: any) {
+      setError(err.message || 'Error en el registro. Intenta nuevamente.');
     } finally {
       setLoading(false);
     }
@@ -66,61 +86,63 @@ export default function SignupPage() {
           <Card>
             <CardHeader>
               <h2 className="text-2xl font-bold text-center text-gray-900">
-                Create your account
+                Crear cuenta
               </h2>
             </CardHeader>
             <CardContent>
               <form onSubmit={handleSubmit} className="space-y-4">
                 <div className="grid grid-cols-2 gap-4">
                   <Input
-                    label="First Name"
+                    label="Nombre"
                     name="firstName"
                     value={formData.firstName}
                     onChange={handleChange}
-                    placeholder="First name"
+                    placeholder="Tu nombre"
                     required
                   />
                   <Input
-                    label="Last Name"
+                    label="Apellido"
                     name="lastName"
                     value={formData.lastName}
                     onChange={handleChange}
-                    placeholder="Last name"
+                    placeholder="Tu apellido"
                   />
                 </div>
                 
                 <Input
-                  label="Email address"
+                  label="Email"
                   type="email"
                   name="email"
                   value={formData.email}
                   onChange={handleChange}
-                  placeholder="Enter your email"
+                  placeholder="tu@email.com"
                   required
                 />
                 
                 <Input
-                  label="Password"
+                  label="Contraseña"
                   type="password"
                   name="password"
                   value={formData.password}
                   onChange={handleChange}
-                  placeholder="Create a password"
+                  placeholder="Mínimo 6 caracteres"
                   required
                 />
 
                 <Input
-                  label="Confirm Password"
+                  label="Confirmar Contraseña"
                   type="password"
                   name="confirmPassword"
                   value={formData.confirmPassword}
                   onChange={handleChange}
-                  placeholder="Confirm your password"
+                  placeholder="Repite tu contraseña"
                   required
                 />
 
                 {error && (
-                  <div className="text-red-600 text-sm text-center">{error}</div>
+                  <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-md text-sm">
+                    {error}
+                  </div>
                 )}
 
                 <Button
@@ -128,15 +150,15 @@ export default function SignupPage() {
                   className="w-full"
                   disabled={loading}
                 >
-                  {loading ? 'Creating account...' : 'Create account'}
+                  {loading ? 'Creando cuenta...' : 'Crear cuenta'}
                 </Button>
               </form>
 
               <div className="mt-6 text-center">
                 <p className="text-sm text-gray-600">
-                  Already have an account?{' '}
-                  <Link href="/login" className="text-blue-600 hover:text-blue-500">
-                    Sign in
+                  ¿Ya tienes cuenta?{' '}
+                  <Link href="/login" className="text-blue-600 hover:text-blue-500 font-medium">
+                    Inicia sesión
                   </Link>
                 </p>
               </div>

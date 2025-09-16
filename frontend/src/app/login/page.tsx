@@ -21,16 +21,26 @@ export default function LoginPage() {
     setError('');
 
     try {
-      // TODO: Implement Supabase authentication
-      // For now, simulate login
-      if (email && password) {
-        localStorage.setItem('user', JSON.stringify({ email }));
-        router.push('/dashboard');
-      } else {
-        setError('Please fill in all fields');
+      const response = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ email, password }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Error en el login');
       }
-    } catch (err) {
-      setError('Login failed. Please try again.');
+
+      // Guardar usuario en localStorage y redirigir
+      localStorage.setItem('user', JSON.stringify(data.user));
+      router.push('/dashboard');
+
+    } catch (err: any) {
+      setError(err.message || 'Error en el login. Intenta nuevamente.');
     } finally {
       setLoading(false);
     }
@@ -44,31 +54,33 @@ export default function LoginPage() {
           <Card>
             <CardHeader>
               <h2 className="text-2xl font-bold text-center text-gray-900">
-                Sign in to your account
+                Iniciar sesión
               </h2>
             </CardHeader>
             <CardContent>
               <form onSubmit={handleSubmit} className="space-y-4">
                 <Input
-                  label="Email address"
+                  label="Email"
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  placeholder="Enter your email"
+                  placeholder="tu@email.com"
                   required
                 />
                 
                 <Input
-                  label="Password"
+                  label="Contraseña"
                   type="password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  placeholder="Enter your password"
+                  placeholder="Tu contraseña"
                   required
                 />
 
                 {error && (
-                  <div className="text-red-600 text-sm text-center">{error}</div>
+                  <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-md text-sm">
+                    {error}
+                  </div>
                 )}
 
                 <Button
@@ -76,15 +88,15 @@ export default function LoginPage() {
                   className="w-full"
                   disabled={loading}
                 >
-                  {loading ? 'Signing in...' : 'Sign in'}
+                  {loading ? 'Iniciando sesión...' : 'Iniciar sesión'}
                 </Button>
               </form>
 
               <div className="mt-6 text-center">
                 <p className="text-sm text-gray-600">
-                  Don't have an account?{' '}
-                  <Link href="/signup" className="text-blue-600 hover:text-blue-500">
-                    Sign up
+                  ¿No tienes cuenta?{' '}
+                  <Link href="/signup" className="text-blue-600 hover:text-blue-500 font-medium">
+                    Regístrate
                   </Link>
                 </p>
               </div>

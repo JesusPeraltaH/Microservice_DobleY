@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Navbar from '@/components/layout/Navbar';
 
@@ -9,23 +9,35 @@ export default function CreateProduct() {
   const [price, setPrice] = useState('');
   const [stock, setStock] = useState('');
   const [description, setDescription] = useState('');
+  const [user, setUser] = useState<any>(null);
   const router = useRouter();
+
+  useEffect(() => {
+    // Obtener usuario del localStorage
+    const userData = localStorage.getItem('user');
+    if (userData) {
+      setUser(JSON.parse(userData));
+    }
+  }, []);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    // En una app real, aquí guardaríamos el producto
     alert(`Producto "${name}" creado con éxito!`);
     router.push('/products');
   };
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <Navbar />
+      <Navbar isAuthenticated={!!user} userEmail={user?.email} />
       <div className="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
-        <div className="md:flex md:items-center md:justify-between">
-          <div className="min-w-0 flex-1">
-            <h1 className="text-3xl font-bold text-gray-900">Crear Producto</h1>
-          </div>
+        {/* Encabezado con información del usuario */}
+        <div className="mb-6">
+          <h1 className="text-3xl font-bold text-gray-900">Crear Producto</h1>
+          {user && (
+            <p className="text-gray-600">
+              Usuario: <span className="font-medium">{user.email}</span>
+            </p>
+          )}
         </div>
 
         <div className="mt-8 max-w-3xl mx-auto grid grid-cols-1 gap-6">

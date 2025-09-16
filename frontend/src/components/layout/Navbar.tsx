@@ -1,23 +1,31 @@
+// components/layout/Navbar.tsx (actualizado)
 'use client';
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
 
 interface NavbarProps {
   isAuthenticated?: boolean;
   userEmail?: string;
+  onMenuClick?: () => void;
+  showMobileMenu?: boolean;
 }
 
-export default function Navbar({ isAuthenticated = false, userEmail }: NavbarProps) {
+export default function Navbar({ 
+  isAuthenticated = false, 
+  userEmail, 
+  onMenuClick,
+  showMobileMenu = false 
+}: NavbarProps) {
   const [user, setUser] = useState<any>(null);
   const router = useRouter();
+  const pathname = usePathname();
 
   useEffect(() => {
     if (isAuthenticated && userEmail) {
       setUser({ email: userEmail });
     } else {
-      // Intentar obtener usuario del localStorage
       const userData = localStorage.getItem('user');
       if (userData) {
         setUser(JSON.parse(userData));
@@ -27,43 +35,66 @@ export default function Navbar({ isAuthenticated = false, userEmail }: NavbarPro
 
   const handleLogout = () => {
     localStorage.removeItem('user');
+    localStorage.removeItem('token');
     router.push('/login');
   };
+
+  const isDashboardPage = pathname?.startsWith('/dashboard') || 
+                         pathname?.startsWith('/products') ||
+                         pathname?.startsWith('/orders') ||
+                         pathname?.startsWith('/sales') ||
+                         pathname?.startsWith('/support');
 
   return (
     <nav className="bg-white shadow-sm border-b border-gray-200">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between h-16">
           <div className="flex items-center">
+            {/* Botón de menú móvil */}
+            {isDashboardPage && showMobileMenu && (
+              <button
+                onClick={onMenuClick}
+                className="lg:hidden text-gray-600 hover:text-gray-800 mr-4"
+              >
+                <span className="text-2xl">☰</span>
+              </button>
+            )}
+            
             <Link href="/" className="flex-shrink-0">
               <h1 className="text-xl font-bold text-blue-600">MicroStore</h1>
             </Link>
-            <div className="hidden sm:ml-6 sm:flex sm:space-x-8">
-              <Link
-                href="/products"
-                className="border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium"
-              >
-                Productos
-              </Link>
-              <Link
-                href="/orders"
-                className="border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium"
-              >
-                Órdenes
-              </Link>
-              <Link
-                href="/support"
-                className="border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium"
-              >
-                Soporte
-              </Link>
-            </div>
+            
+            {/* Navegación desktop */}
+            {!isDashboardPage && (
+              <div className="hidden sm:ml-6 sm:flex sm:space-x-8">
+                <Link href="/products" className="text-gray-500 hover:text-gray-700 px-3 py-2 text-sm font-medium">
+                  Productos
+                </Link>
+                <Link href="/orders" className="text-gray-500 hover:text-gray-700 px-3 py-2 text-sm font-medium">
+                  Órdenes
+                </Link>
+                <Link href="/support" className="text-gray-500 hover:text-gray-700 px-3 py-2 text-sm font-medium">
+                  Soporte
+                </Link>
+              </div>
+            )}
+
+            {/* Título de la página */}
+            {isDashboardPage && (
+              <h1 className="text-xl font-semibold text-gray-800 ml-4">
+                {pathname === '/dashboard' && 'Dashboard'}
+                {pathname?.startsWith('/products') && 'Productos'}
+                {pathname?.startsWith('/orders') && 'Órdenes'}
+                {pathname?.startsWith('/sales') && 'Ventas'}
+                {pathname?.startsWith('/support') && 'Soporte'}
+              </h1>
+            )}
           </div>
 
           <div className="flex items-center">
             {user ? (
               <div className="flex items-center space-x-4">
-                <span className="text-sm text-gray-700">
+                <span className="text-sm text-gray-700 hidden sm:block">
                   Hola, <span className="font-medium">{user.email}</span>
                 </span>
                 <button
@@ -75,16 +106,10 @@ export default function Navbar({ isAuthenticated = false, userEmail }: NavbarPro
               </div>
             ) : (
               <div className="flex items-center space-x-2">
-                <Link
-                  href="/login"
-                  className="text-gray-700 px-3 py-1 rounded-md text-sm font-medium hover:bg-gray-100"
-                >
+                <Link href="/login" className="text-gray-700 px-3 py-1 rounded-md text-sm font-medium hover:bg-gray-100">
                   Iniciar Sesión
                 </Link>
-                <Link
-                  href="/signup"
-                  className="bg-blue-600 text-white px-3 py-1 rounded-md text-sm font-medium hover:bg-blue-700"
-                >
+                <Link href="/signup" className="bg-blue-600 text-white px-3 py-1 rounded-md text-sm font-medium hover:bg-blue-700">
                   Registrarse
                 </Link>
               </div>

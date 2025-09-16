@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Navbar from '@/components/layout/Navbar';
 
@@ -30,7 +30,16 @@ export default function SupportTickets() {
     description: '',
     priority: 'Media'
   });
+  const [user, setUser] = useState<any>(null);
   const router = useRouter();
+
+  useEffect(() => {
+    // Obtener usuario del localStorage
+    const userData = localStorage.getItem('user');
+    if (userData) {
+      setUser(JSON.parse(userData));
+    }
+  }, []);
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -60,7 +69,7 @@ export default function SupportTickets() {
     const newTicketData: Ticket = {
       id: Math.max(...tickets.map(t => t.id)) + 1,
       title: newTicket.title,
-      customer: "Usuario Actual", // En una app real, esto vendría del usuario autenticado
+      customer: user?.email || "Usuario Actual",
       status: "Abierto",
       priority: newTicket.priority,
       createdAt: new Date().toISOString().split('T')[0],
@@ -80,11 +89,20 @@ export default function SupportTickets() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <Navbar />
+      <Navbar isAuthenticated={!!user} userEmail={user?.email} />
       <div className="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
+        {/* Encabezado con información del usuario */}
+        <div className="mb-6">
+          <h1 className="text-3xl font-bold text-gray-900">Tickets de Soporte</h1>
+          {user && (
+            <p className="text-gray-600">
+              Usuario: <span className="font-medium">{user.email}</span>
+            </p>
+          )}
+        </div>
+
         <div className="flex justify-between items-center mb-6">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900">Tickets de Soporte</h1>
             <p className="text-gray-600">Gestiona las solicitudes de soporte de tus clientes</p>
           </div>
           <button 

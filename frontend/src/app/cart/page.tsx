@@ -1,14 +1,29 @@
-// frontend/src/app/cart/page.tsx
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Navbar from '@/components/layout/Navbar';
 
-export default function Cart() {
-  const [cartItems] = useState([
+interface CartItem {
+  id: number;
+  name: string;
+  price: number;
+  quantity: number;
+}
+
+export default function CartPage() {
+  const [cartItems] = useState<CartItem[]>([
     { id: 1, name: "Laptop Gaming", price: 1200, quantity: 1 },
     { id: 2, name: "Smartphone", price: 800, quantity: 2 }
   ]);
+  const [user, setUser] = useState<any>(null);
+
+  useEffect(() => {
+    // Obtener usuario del localStorage
+    const userData = localStorage.getItem('user');
+    if (userData) {
+      setUser(JSON.parse(userData));
+    }
+  }, []);
 
   const getTotal = () => {
     return cartItems.reduce((total, item) => total + (item.price * item.quantity), 0);
@@ -16,9 +31,17 @@ export default function Cart() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <Navbar />
+      <Navbar isAuthenticated={!!user} userEmail={user?.email} />
       <div className="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
-        <h1 className="text-3xl font-bold text-gray-900 mb-6">Carrito de Compras</h1>
+        {/* Encabezado con información del usuario */}
+        <div className="mb-6">
+          <h1 className="text-3xl font-bold text-gray-900">Carrito de Compras</h1>
+          {user && (
+            <p className="text-gray-600">
+              Usuario: <span className="font-medium">{user.email}</span>
+            </p>
+          )}
+        </div>
         
         {cartItems.length === 0 ? (
           <div className="bg-white overflow-hidden shadow rounded-lg">
@@ -72,7 +95,7 @@ export default function Cart() {
                   </button>
                 </div>
               </div>
-            </div>
+              </div>
           </>
         )}
       </div>

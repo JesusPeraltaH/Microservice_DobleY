@@ -1,5 +1,6 @@
 'use client';
 
+import { useEffect, useState } from 'react';
 import Navbar from '@/components/layout/Navbar';
 
 interface Order {
@@ -11,14 +12,23 @@ interface Order {
   items: number;
 }
 
-const orders: Order[] = [
-  { id: 1001, date: "2023-05-15", customer: "Juan Pérez", total: 2800, status: "Completado", items: 3 },
-  { id: 1002, date: "2023-05-14", customer: "María García", total: 150, status: "Completado", items: 1 },
-  { id: 1003, date: "2023-05-13", customer: "Carlos López", total: 800, status: "Pendiente", items: 1 },
-  { id: 1004, date: "2023-05-12", customer: "Ana Martínez", total: 1950, status: "En proceso", items: 2 }
-];
-
 export default function Orders() {
+  const orders: Order[] = [
+    { id: 1001, date: "2023-05-15", customer: "Juan Pérez", total: 2800, status: "Completado", items: 3 },
+    { id: 1002, date: "2023-05-14", customer: "María García", total: 150, status: "Completado", items: 1 },
+    { id: 1003, date: "2023-05-13", customer: "Carlos López", total: 800, status: "Pendiente", items: 1 },
+    { id: 1004, date: "2023-05-12", customer: "Ana Martínez", total: 1950, status: "En proceso", items: 2 }
+  ];
+  const [user, setUser] = useState<any>(null);
+
+  useEffect(() => {
+    // Obtener usuario del localStorage
+    const userData = localStorage.getItem('user');
+    if (userData) {
+      setUser(JSON.parse(userData));
+    }
+  }, []);
+
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'Completado': return 'bg-green-100 text-green-800';
@@ -30,10 +40,16 @@ export default function Orders() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <Navbar />
+      <Navbar isAuthenticated={!!user} userEmail={user?.email} />
       <div className="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
-        <div className="flex justify-between items-center mb-6">
+        {/* Encabezado con información del usuario */}
+        <div className="mb-6">
           <h1 className="text-3xl font-bold text-gray-900">Órdenes de Compra</h1>
+          {user && (
+            <p className="text-gray-600">
+              Usuario: <span className="font-medium">{user.email}</span>
+            </p>
+          )}
         </div>
 
         <div className="bg-white shadow overflow-hidden rounded-lg">
