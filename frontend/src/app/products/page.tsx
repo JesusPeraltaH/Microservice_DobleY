@@ -5,23 +5,18 @@ import Link from 'next/link';
 import Navbar from '@/components/layout/Navbar';
 
 interface Product {
-  id: number;
+  _id: string;
   name: string;
   price: number;
   stock: number;
   description: string;
 }
 
-// Datos de ejemplo
-const initialProducts: Product[] = [
-  { id: 1, name: "Laptop Gaming", price: 1200, stock: 15, description: "Potente laptop para gaming" },
-  { id: 2, name: "Smartphone", price: 800, stock: 30, description: "Último modelo con cámara de alta resolución" },
-  { id: 3, name: "Auriculares Bluetooth", price: 150, stock: 50, description: "Sonido de calidad con cancelación de ruido" }
-];
-
 export default function Products() {
-  const [products, setProducts] = useState<Product[]>(initialProducts);
+  const [products, setProducts] = useState<Product[]>([]);
   const [user, setUser] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
 
   useEffect(() => {
     // Obtener usuario del localStorage
@@ -29,11 +24,60 @@ export default function Products() {
     if (userData) {
       setUser(JSON.parse(userData));
     }
+
+    // Obtener productos de la API
+    fetchProducts();
   }, []);
 
-  const deleteProduct = (id: number) => {
-    setProducts(products.filter(product => product.id !== id));
+  const fetchProducts = async () => {
+    try {
+      const response = await fetch('/api/products');
+      if (response.ok) {
+        const data = await response.json();
+        setProducts(data);
+      } else {
+        setError('Error al obtener productos');
+      }
+    } catch (error) {
+      setError('Error de conexión');
+      console.error('Error:', error);
+    } finally {
+      setLoading(false);
+    }
   };
+
+  const deleteProduct = async (id: string) => {
+  if (confirm('¿Estás seguro de que quieres eliminar este producto?')) {
+    try {
+      const response = await fetch(`/api/products/${id}`, {
+        method: 'DELETE',
+      });
+      
+      if (response.ok) {
+        // Actualizar la lista de productos
+        setProducts(products.filter(product => product._id !== id));
+        alert('Producto eliminado con éxito');
+      } else {
+        const data = await response.json();
+        alert(data.error || 'Error al eliminar producto');
+      }
+    } catch (error) {
+      console.error('Error:', error);
+      alert('Error al eliminar producto');
+    }
+  }
+};
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
+          <p className="mt-4 text-gray-600">Cargando productos...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -48,6 +92,12 @@ export default function Products() {
             </p>
           )}
         </div>
+
+        {error && (
+          <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-md text-sm mb-6">
+            {error}
+          </div>
+        )}
 
         <div className="flex justify-between items-center mb-6">
           <Link 
@@ -70,7 +120,7 @@ export default function Products() {
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
               {products.map((product) => (
-                <tr key={product.id}>
+                <tr key={product._id}>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="text-sm font-medium text-gray-900">{product.name}</div>
                     <div className="text-sm text-gray-500">{product.description}</div>
@@ -79,13 +129,13 @@ export default function Products() {
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{product.stock}</td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                     <Link 
-                      href={`/products/edit/${product.id}`}
+                      href={`/products/edit/${product._id}`}
                       className="text-blue-600 hover:text-blue-900 mr-4"
                     >
                       Editar
                     </Link>
                     <button 
-                      onClick={() => deleteProduct(product.id)}
+                      onClick={() => deleteProduct(product._id)}
                       className="text-red-600 hover:text-red-900"
                     >
                       Eliminar
@@ -95,6 +145,12 @@ export default function Products() {
               ))}
             </tbody>
           </table>
+          
+          {products.length === 0 && (
+            <div className="px-6 py-4 text-center text-gray-500">
+              No hay productos registrados
+            </div>
+          )}
         </div>
       </div>
     </div>

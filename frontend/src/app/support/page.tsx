@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import Navbar from '@/components/layout/Navbar';
 
 interface Ticket {
-  id: number;
+  _id: string;
   title: string;
   customer: string;
   status: string;
@@ -14,15 +14,8 @@ interface Ticket {
   updatedAt: string;
 }
 
-const initialTickets: Ticket[] = [
-  { id: 1, title: "Problema con mi pedido", customer: "Juan Pérez", status: "Abierto", priority: "Alta", createdAt: "2023-05-15", updatedAt: "2023-05-15" },
-  { id: 2, title: "Producto defectuoso", customer: "María García", status: "En proceso", priority: "Media", createdAt: "2023-05-14", updatedAt: "2023-05-15" },
-  { id: 3, title: "Consulta sobre garantía", customer: "Carlos López", status: "Cerrado", priority: "Baja", createdAt: "2023-05-13", updatedAt: "2023-05-14" },
-  { id: 4, title: "Devolución solicitada", customer: "Ana Martínez", status: "Abierto", priority: "Alta", createdAt: "2023-05-12", updatedAt: "2023-05-12" }
-];
-
 export default function SupportTickets() {
-  const [tickets, setTickets] = useState<Ticket[]>(initialTickets);
+  const [tickets, setTickets] = useState<Ticket[]>([]);
   const [activeTab, setActiveTab] = useState('all');
   const [showNewTicketForm, setShowNewTicketForm] = useState(false);
   const [newTicket, setNewTicket] = useState({
@@ -31,6 +24,8 @@ export default function SupportTickets() {
     priority: 'Media'
   });
   const [user, setUser] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
   const router = useRouter();
 
   useEffect(() => {
@@ -39,7 +34,27 @@ export default function SupportTickets() {
     if (userData) {
       setUser(JSON.parse(userData));
     }
+
+    // Obtener tickets de la API
+    fetchTickets();
   }, []);
+
+  const fetchTickets = async () => {
+    try {
+      const response = await fetch('/api/support');
+      if (response.ok) {
+        const data = await response.json();
+        setTickets(data);
+      } else {
+        setError('Error al obtener tickets');
+      }
+    } catch (error) {
+      setError('Error de conexión');
+      console.error('Error:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -63,29 +78,53 @@ export default function SupportTickets() {
     ? tickets 
     : tickets.filter(ticket => ticket.status === activeTab);
 
-  const handleCreateTicket = (e: React.FormEvent) => {
+  const handleCreateTicket = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    const newTicketData: Ticket = {
-      id: Math.max(...tickets.map(t => t.id)) + 1,
-      title: newTicket.title,
-      customer: user?.email || "Usuario Actual",
-      status: "Abierto",
-      priority: newTicket.priority,
-      createdAt: new Date().toISOString().split('T')[0],
-      updatedAt: new Date().toISOString().split('T')[0]
-    };
+    try {
+      const response = await fetch('/api/support', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          title: newTicket.title,
+          description: newTicket.description,
+          priority: newTicket.priority,
+          customer: user?.email || "Usuario Actual"
+        }),
+      });
 
-    setTickets([newTicketData, ...tickets]);
-    setNewTicket({ title: '', description: '', priority: 'Media' });
-    setShowNewTicketForm(false);
-    
-    alert('Ticket creado con éxito!');
+      if (response.ok) {
+        // Recargar la lista de tickets
+        fetchTickets();
+        setNewTicket({ title: '', description: '', priority: 'Media' });
+        setShowNewTicketForm(false);
+        alert('Ticket creado con éxito!');
+      } else {
+        const data = await response.json();
+        alert(data.error || 'Error al crear el ticket');
+      }
+    } catch (error) {
+      console.error('Error:', error);
+      alert('Error al crear el ticket');
+    }
   };
 
   const getStatusCount = (status: string) => {
     return tickets.filter(ticket => ticket.status === status).length;
   };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
+          <p className="mt-4 text-gray-600">Cargando tickets...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -100,6 +139,12 @@ export default function SupportTickets() {
             </p>
           )}
         </div>
+
+        {error && (
+          <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-md text-sm mb-6">
+            {error}
+          </div>
+        )}
 
         <div className="flex justify-between items-center mb-6">
           <div>
@@ -332,8 +377,8 @@ export default function SupportTickets() {
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
               {filteredTickets.map((ticket) => (
-                <tr key={ticket.id} className="hover:bg-gray-50 cursor-pointer">
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">#{ticket.id}</td>
+                <tr key={ticket._id} className="hover:bg-gray-50 cursor-pointer">
+                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">#{ticket._id.substring(0, 8)}</td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{ticket.title}</td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{ticket.customer}</td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
@@ -346,7 +391,9 @@ export default function SupportTickets() {
                       {ticket.status}
                     </span>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{ticket.createdAt}</td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                    {new Date(ticket.createdAt).toLocaleDateString()}
+                  </td>
                 </tr>
               ))}
             </tbody>

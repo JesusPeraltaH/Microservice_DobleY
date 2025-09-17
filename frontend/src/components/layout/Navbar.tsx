@@ -1,4 +1,4 @@
-// components/layout/Navbar.tsx (actualizado)
+// components/layout/Navbar.tsx
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -19,6 +19,7 @@ export default function Navbar({
   showMobileMenu = false 
 }: NavbarProps) {
   const [user, setUser] = useState<any>(null);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const router = useRouter();
   const pathname = usePathname();
 
@@ -39,11 +40,17 @@ export default function Navbar({
     router.push('/login');
   };
 
+  const toggleMobileMenu = () => {
+    setMobileMenuOpen(!mobileMenuOpen);
+    if (onMenuClick) onMenuClick();
+  };
+
   const isDashboardPage = pathname?.startsWith('/dashboard') || 
                          pathname?.startsWith('/products') ||
                          pathname?.startsWith('/orders') ||
                          pathname?.startsWith('/sales') ||
-                         pathname?.startsWith('/support');
+                         pathname?.startsWith('/support') ||
+                         pathname?.startsWith('/coupons');
 
   return (
     <nav className="bg-white shadow-sm border-b border-gray-200">
@@ -51,9 +58,9 @@ export default function Navbar({
         <div className="flex justify-between h-16">
           <div className="flex items-center">
             {/* Botón de menú móvil */}
-            {isDashboardPage && showMobileMenu && (
+            {isDashboardPage && (
               <button
-                onClick={onMenuClick}
+                onClick={toggleMobileMenu}
                 className="lg:hidden text-gray-600 hover:text-gray-800 mr-4"
               >
                 <span className="text-2xl">☰</span>
@@ -70,8 +77,14 @@ export default function Navbar({
                 <Link href="/products" className="text-gray-500 hover:text-gray-700 px-3 py-2 text-sm font-medium">
                   Productos
                 </Link>
+                <Link href="/sales/create" className="text-gray-500 hover:text-gray-700 px-3 py-2 text-sm font-medium">
+                  Nueva Venta
+                </Link>
                 <Link href="/orders" className="text-gray-500 hover:text-gray-700 px-3 py-2 text-sm font-medium">
                   Órdenes
+                </Link>
+                <Link href="/coupons" className="text-gray-500 hover:text-gray-700 px-3 py-2 text-sm font-medium">
+                  Cupones
                 </Link>
                 <Link href="/support" className="text-gray-500 hover:text-gray-700 px-3 py-2 text-sm font-medium">
                   Soporte
@@ -81,11 +94,12 @@ export default function Navbar({
 
             {/* Título de la página */}
             {isDashboardPage && (
-              <h1 className="text-xl font-semibold text-gray-800 ml-4">
+              <h1 className="text-xl font-semibold text-gray-800 ml-4 hidden sm:block">
                 {pathname === '/dashboard' && 'Dashboard'}
                 {pathname?.startsWith('/products') && 'Productos'}
                 {pathname?.startsWith('/orders') && 'Órdenes'}
                 {pathname?.startsWith('/sales') && 'Ventas'}
+                {pathname?.startsWith('/coupons') && 'Cupones'}
                 {pathname?.startsWith('/support') && 'Soporte'}
               </h1>
             )}
@@ -116,6 +130,56 @@ export default function Navbar({
             )}
           </div>
         </div>
+
+        {/* Menú móvil */}
+        {mobileMenuOpen && isDashboardPage && (
+          <div className="lg:hidden bg-white border-t border-gray-200 py-2">
+            <div className="flex flex-col space-y-1 px-2">
+              <Link 
+                href="/dashboard" 
+                className="text-gray-600 hover:text-gray-900 px-3 py-2 rounded-md text-base font-medium"
+                onClick={() => setMobileMenuOpen(false)}
+              >
+                Dashboard
+              </Link>
+              <Link 
+                href="/products" 
+                className="text-gray-600 hover:text-gray-900 px-3 py-2 rounded-md text-base font-medium"
+                onClick={() => setMobileMenuOpen(false)}
+              >
+                Productos
+              </Link>
+              <Link 
+                href="/sales/create" 
+                className="text-gray-600 hover:text-gray-900 px-3 py-2 rounded-md text-base font-medium"
+                onClick={() => setMobileMenuOpen(false)}
+              >
+                Nueva Venta
+              </Link>
+              <Link 
+                href="/orders" 
+                className="text-gray-600 hover:text-gray-900 px-3 py-2 rounded-md text-base font-medium"
+                onClick={() => setMobileMenuOpen(false)}
+              >
+                Órdenes
+              </Link>
+              <Link 
+                href="/coupons" 
+                className="text-gray-600 hover:text-gray-900 px-3 py-2 rounded-md text-base font-medium"
+                onClick={() => setMobileMenuOpen(false)}
+              >
+                Cupones
+              </Link>
+              <Link 
+                href="/support" 
+                className="text-gray-600 hover:text-gray-900 px-3 py-2 rounded-md text-base font-medium"
+                onClick={() => setMobileMenuOpen(false)}
+              >
+                Soporte
+              </Link>
+            </div>
+          </div>
+        )}
       </div>
     </nav>
   );

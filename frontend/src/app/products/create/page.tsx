@@ -1,6 +1,7 @@
+// products/create/page.tsx
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Navbar from '@/components/layout/Navbar';
 
@@ -9,132 +10,133 @@ export default function CreateProduct() {
   const [price, setPrice] = useState('');
   const [stock, setStock] = useState('');
   const [description, setDescription] = useState('');
-  const [user, setUser] = useState<any>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
   const router = useRouter();
 
-  useEffect(() => {
-    // Obtener usuario del localStorage
-    const userData = localStorage.getItem('user');
-    if (userData) {
-      setUser(JSON.parse(userData));
-    }
-  }, []);
-
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    alert(`Producto "${name}" creado con éxito!`);
-    router.push('/products');
+    setLoading(true);
+    setError('');
+
+    try {
+      const response = await fetch('/api/products', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          name,
+          price: parseFloat(price),
+          stock: parseInt(stock),
+          description
+        }),
+      });
+
+      if (response.ok) {
+        alert('Producto creado con éxito!');
+        router.push('/products');
+      } else {
+        const data = await response.json();
+        setError(data.error || 'Error al crear producto');
+      }
+    } catch (error) {
+      setError('Error de conexión');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <Navbar isAuthenticated={!!user} userEmail={user?.email} />
-      <div className="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
-        {/* Encabezado con información del usuario */}
-        <div className="mb-6">
-          <h1 className="text-3xl font-bold text-gray-900">Crear Producto</h1>
-          {user && (
-            <p className="text-gray-600">
-              Usuario: <span className="font-medium">{user.email}</span>
-            </p>
-          )}
-        </div>
+      <Navbar />
+      <div className="max-w-2xl mx-auto py-8 px-4">
+        <h1 className="text-3xl font-bold text-gray-900 mb-6">Crear Nuevo Producto</h1>
+        
+        {error && (
+          <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-md mb-4">
+            {error}
+          </div>
+        )}
 
-        <div className="mt-8 max-w-3xl mx-auto grid grid-cols-1 gap-6">
-          <div className="shadow sm:rounded-md sm:overflow-hidden">
-            <div className="px-4 py-5 bg-white space-y-6 sm:p-6">
-              <form onSubmit={handleSubmit}>
-                <div className="grid grid-cols-3 gap-6">
-                  <div className="col-span-3 sm:col-span-2">
-                    <label htmlFor="name" className="block text-sm font-medium text-gray-700">
-                      Nombre del producto
-                    </label>
-                    <div className="mt-1 flex rounded-md shadow-sm">
-                      <input
-                        type="text"
-                        id="name"
-                        value={name}
-                        onChange={(e) => setName(e.target.value)}
-                        className="focus:ring-blue-500 focus:border-blue-500 flex-1 block w-full rounded-md sm:text-sm border-gray-300"
-                        placeholder="Nombre del producto"
-                        required
-                      />
-                    </div>
-                  </div>
-                </div>
+        <form onSubmit={handleSubmit} className="bg-white shadow-md rounded px-8 pt-6 pb-8 mb-4">
+          <div className="mb-4">
+            <label className="block text-gray-700 text-sm font-bold mb-2">
+              Nombre del Producto *
+            </label>
+            <input
+              type="text"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+              placeholder="Nombre del producto"
+              required
+            />
+          </div>
 
-                <div className="grid grid-cols-3 gap-6 mt-4">
-                  <div className="col-span-3 sm:col-span-1">
-                    <label htmlFor="price" className="block text-sm font-medium text-gray-700">
-                      Precio ($)
-                    </label>
-                    <div className="mt-1 flex rounded-md shadow-sm">
-                      <input
-                        type="number"
-                        id="price"
-                        value={price}
-                        onChange={(e) => setPrice(e.target.value)}
-                        className="focus:ring-blue-500 focus:border-blue-500 flex-1 block w-full rounded-md sm:text-sm border-gray-300"
-                        placeholder="0.00"
-                        step="0.01"
-                        required
-                      />
-                    </div>
-                  </div>
+          <div className="grid grid-cols-2 gap-4 mb-4">
+            <div>
+              <label className="block text-gray-700 text-sm font-bold mb-2">
+                Precio ($) *
+              </label>
+              <input
+                type="number"
+                value={price}
+                onChange={(e) => setPrice(e.target.value)}
+                className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+                placeholder="0.00"
+                step="0.01"
+                min="0"
+                required
+              />
+            </div>
 
-                  <div className="col-span-3 sm:col-span-1">
-                    <label htmlFor="stock" className="block text-sm font-medium text-gray-700">
-                      Stock disponible
-                    </label>
-                    <div className="mt-1 flex rounded-md shadow-sm">
-                      <input
-                        type="number"
-                        id="stock"
-                        value={stock}
-                        onChange={(e) => setStock(e.target.value)}
-                        className="focus:ring-blue-500 focus:border-blue-500 flex-1 block w-full rounded-md sm:text-sm border-gray-300"
-                        placeholder="0"
-                        required
-                      />
-                    </div>
-                  </div>
-                </div>
-
-                <div className="mt-4">
-                  <label htmlFor="description" className="block text-sm font-medium text-gray-700">
-                    Descripción
-                  </label>
-                  <div className="mt-1">
-                    <textarea
-                      id="description"
-                      rows={3}
-                      value={description}
-                      onChange={(e) => setDescription(e.target.value)}
-                      className="shadow-sm focus:ring-blue-500 focus:border-blue-500 mt-1 block w-full sm:text-sm border border-gray-300 rounded-md"
-                      placeholder="Describe el producto..."
-                    />
-                  </div>
-                </div>
-
-                <div className="px-4 py-3 bg-gray-50 text-right sm:px-6 mt-6">
-                  <button
-                    type="button"
-                    onClick={() => router.push('/products')}
-                    className="inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-                  >
-                    Cancelar
-                  </button>
-                  <button
-                    type="submit"
-                    className="ml-3 inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-                  >
-                    Guardar
-                  </button>
-                </div>
-              </form>
+            <div>
+              <label className="block text-gray-700 text-sm font-bold mb-2">
+                Stock *
+              </label>
+              <input
+                type="number"
+                value={stock}
+                onChange={(e) => setStock(e.target.value)}
+                className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+                placeholder="0"
+                min="0"
+                required
+              />
             </div>
           </div>
-        </div>
+
+          <div className="mb-6">
+            <label className="block text-gray-700 text-sm font-bold mb-2">
+              Descripción
+            </label>
+            <textarea
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              rows={4}
+              className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+              placeholder="Describe el producto..."
+            />
+          </div>
+
+          <div className="flex items-center justify-between">
+            <button
+              type="button"
+              onClick={() => router.push('/products')}
+              className="bg-gray-500 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline"
+            >
+              Cancelar
+            </button>
+            <button
+              type="submit"
+              disabled={loading}
+              className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline disabled:opacity-50"
+            >
+              {loading ? 'Creando...' : 'Crear Producto'}
+            </button>
+          </div>
+        </form>
       </div>
     </div>
   );
