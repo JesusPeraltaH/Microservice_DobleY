@@ -3,29 +3,50 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Navbar from '@/components/layout/Navbar';
+import { couponsAPI } from '@/lib/api/coupons';
 
 export default function CreateCoupon() {
   const [code, setCode] = useState('');
   const [discount, setDiscount] = useState('');
+  const [validFrom, setValidFrom] = useState('');
   const [expiryDate, setExpiryDate] = useState('');
-  const [isActive, setIsActive] = useState(true);
-  const [minPurchase, setMinPurchase] = useState('');
   const [maxUses, setMaxUses] = useState('');
   const [user, setUser] = useState<any>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
   const router = useRouter();
 
   useEffect(() => {
-    // Obtener usuario del localStorage
+    // Check authentication
     const userData = localStorage.getItem('user');
-    if (userData) {
-      setUser(JSON.parse(userData));
+    if (!userData) {
+      router.push('/login');
+      return;
     }
-  }, []);
+    setUser(JSON.parse(userData));
+  }, [router]);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    alert(`Cupón "${code}" creado con éxito!`);
-    router.push('/');
+    setLoading(true);
+    setError('');
+
+    try {
+      const couponData = {
+        code: code.toUpperCase(),
+        discount: parseFloat(discount),
+        valid_from: validFrom || undefined,
+        valid_until: expiryDate || undefined,
+        usage_limit: maxUses ? parseInt(maxUses) : undefined,
+      };
+
+      await couponsAPI.createCoupon(couponData);
+      router.push('/coupons');
+    } catch (err: any) {
+      setError(err.message || 'Failed to create coupon');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const generateRandomCode = () => {
@@ -104,45 +125,41 @@ export default function CreateCoupon() {
                     </div>
                   </div>
 
-                  {/* Fecha de Expiración */}
+                  {/* Fecha de Inicio */}
                   <div>
-                    <label htmlFor="expiryDate" className="block text-sm font-medium text-gray-700">
-                      Fecha de Expiración *
+                    <label htmlFor="validFrom" className="block text-sm font-medium text-gray-700">
+                      Fecha de Inicio
                     </label>
                     <div className="mt-1">
                       <input
-                        type="date"
+                        type="datetime-local"
+                        id="validFrom"
+                        value={validFrom}
+                        onChange={(e) => setValidFrom(e.target.value)}
+                        className="focus:ring-blue-500 focus:border-blue-500 block w-full rounded-md sm:text-sm border-gray-300"
+                      />
+                    </div>
+                    <p className="mt-2 text-sm text-gray-500">
+                      Fecha y hora desde cuando el cupón estará activo (opcional)
+                    </p>
+                  </div>
+
+                  {/* Fecha de Expiración */}
+                  <div>
+                    <label htmlFor="expiryDate" className="block text-sm font-medium text-gray-700">
+                      Fecha de Expiración
+                    </label>
+                    <div className="mt-1">
+                      <input
+                        type="datetime-local"
                         id="expiryDate"
                         value={expiryDate}
                         onChange={(e) => setExpiryDate(e.target.value)}
                         className="focus:ring-blue-500 focus:border-blue-500 block w-full rounded-md sm:text-sm border-gray-300"
-                        required
-                      />
-                    </div>
-                  </div>
-
-                  {/* Compra Mínima */}
-                  <div>
-                    <label htmlFor="minPurchase" className="block text-sm font-medium text-gray-700">
-                      Compra Mínima ($)
-                    </label>
-                    <div className="mt-1 flex rounded-md shadow-sm">
-                      <span className="inline-flex items-center px-3 rounded-l-md border border-r-0 border-gray-300 bg-gray-50 text-gray-500 text-sm">
-                        $
-                      </span>
-                      <input
-                        type="number"
-                        id="minPurchase"
-                        value={minPurchase}
-                        onChange={(e) => setMinPurchase(e.target.value)}
-                        className="focus:ring-blue-500 focus:border-blue-500 flex-1 block w-full rounded-none rounded-r-md sm:text-sm border-gray-300"
-                        placeholder="0.00"
-                        step="0.01"
-                        min="0"
                       />
                     </div>
                     <p className="mt-2 text-sm text-gray-500">
-                      Monto mínimo de compra requerido para usar el cupón (opcional)
+                      Fecha y hora hasta cuando el cupón será válido (opcional)
                     </p>
                   </div>
 
@@ -167,39 +184,41 @@ export default function CreateCoupon() {
                     </p>
                   </div>
 
-                  {/* Estado Activo */}
-                  <div className="flex items-start">
-                    <div className="flex items-center h-5">
-                      <input
-                        id="isActive"
-                        type="checkbox"
-                        checked={isActive}
-                        onChange={(e) => setIsActive(e.target.checked)}
-                        className="focus:ring-blue-500 h-4 w-4 text-blue-600 border-gray-300 rounded"
-                      />
-                    </div>
-                    <div className="ml-3 text-sm">
-                      <label htmlFor="isActive" className="font-medium text-gray-700">
-                        Cupón activo
-                      </label>
-                      <p className="text-gray-500">El cupón estará disponible para uso inmediato</p>
+                </div>
+
+                {error && (
+                  <div className="mt-4 bg-red-50 border border-red-200 rounded-md p-4">
+                    <div className="flex">
+                      <div className="flex-shrink-0">
+                        <svg className="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
+                          <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                        </svg>
+                      </div>
+                      <div className="ml-3">
+                        <h3 className="text-sm font-medium text-red-800">Error</h3>
+                        <div className="mt-2 text-sm text-red-700">
+                          <p>{error}</p>
+                        </div>
+                      </div>
                     </div>
                   </div>
-                </div>
+                )}
 
                 <div className="px-4 py-3 bg-gray-50 text-right sm:px-6 mt-6">
                   <button
                     type="button"
-                    onClick={() => router.push('/')}
+                    onClick={() => router.push('/coupons')}
                     className="inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                    disabled={loading}
                   >
                     Cancelar
                   </button>
                   <button
                     type="submit"
-                    className="ml-3 inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
+                    className="ml-3 inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 disabled:opacity-50"
+                    disabled={loading}
                   >
-                    Crear Cupón
+                    {loading ? 'Creando...' : 'Crear Cupón'}
                   </button>
                 </div>
               </form>

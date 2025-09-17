@@ -1,117 +1,319 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import Navbar from '@/components/layout/Navbar';
+import Button from '@/components/ui/Button';
+import Card, { CardHeader, CardContent } from '@/components/ui/Card';
+import { couponsAPI, Coupon, CouponStats } from '@/lib/api/coupons';
 
-export default function CreateCoupon() {
-  const [code, setCode] = useState('');
-  const [discount, setDiscount] = useState('');
-  const [expiryDate, setExpiryDate] = useState('');
+export default function CouponsPage() {
+  const [coupons, setCoupons] = useState<Coupon[]>([]);
+  const [stats, setStats] = useState<CouponStats | null>(null);
+  const [user, setUser] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+  const [filter, setFilter] = useState<'all' | 'active' | 'expired'>('all');
   const router = useRouter();
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    alert(`Cupón "${code}" creado con éxito!`);
-    router.push('/');
+  useEffect(() => {
+    // Check authentication
+    const userData = localStorage.getItem('user');
+    if (!userData) {
+      router.push('/login');
+      return;
+    }
+    setUser(JSON.parse(userData));
+    loadData();
+  }, [router, filter]);
+
+  const loadData = async () => {
+    try {
+      setLoading(true);
+      const [couponsData, statsData] = await Promise.all([
+        couponsAPI.getCoupons(filter === 'active' ? { active: true } : undefined),
+        couponsAPI.getCouponStats()
+      ]);
+
+      let filteredCoupons = couponsData;
+      if (filter === 'expired') {
+        const now = new Date();
+        filteredCoupons = couponsData.filter(coupon =>
+          coupon.valid_until && new Date(coupon.valid_until) < now
+        );
+      }
+
+      setCoupons(filteredCoupons);
+      setStats(statsData);
+    } catch (err: any) {
+      setError(err.message || 'Failed to load coupons');
+    } finally {
+      setLoading(false);
+    }
   };
+
+  const handleDeleteCoupon = async (id: string, code: string) => {
+    if (!confirm(`¿Estás seguro de que quieres eliminar el cupón "${code}"?`)) {
+      return;
+    }
+
+    try {
+      await couponsAPI.deleteCoupon(id);
+      loadData(); // Reload data
+    } catch (err: any) {
+      alert('Error al eliminar el cupón: ' + err.message);
+    }
+  };
+
+  const formatDate = (dateString?: string) => {
+    if (!dateString) return 'Sin límite';
+    return new Date(dateString).toLocaleDateString('es-ES', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+  };
+
+  const getCouponStatus = (coupon: Coupon) => {
+    const now = new Date();
+
+    if (coupon.valid_from && new Date(coupon.valid_from) > now) {
+      return { status: 'pending', label: 'Pendiente', color: 'bg-yellow-100 text-yellow-800' };
+    }
+
+    if (coupon.valid_until && new Date(coupon.valid_until) < now) {
+      return { status: 'expired', label: 'Expirado', color: 'bg-red-100 text-red-800' };
+    }
+
+    if (coupon.usage_limit && coupon.used_count >= coupon.usage_limit) {
+      return { status: 'exhausted', label: 'Agotado', color: 'bg-gray-100 text-gray-800' };
+    }
+
+    return { status: 'active', label: 'Activo', color: 'bg-green-100 text-green-800' };
+  };
+
+  if (!user) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
+          <p className="mt-4 text-gray-600">Cargando...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <Navbar />
+      <Navbar isAuthenticated={true} userEmail={user.email} />
+
       <div className="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
-        <div className="md:flex md:items-center md:justify-between">
-          <div className="min-w-0 flex-1">
-            <h1 className="text-3xl font-bold text-gray-900">Crear Cupón de Descuento</h1>
-          </div>
-        </div>
-
-        <div className="mt-8 max-w-3xl mx-auto grid grid-cols-1 gap-6">
-          <div className="shadow sm:rounded-md sm:overflow-hidden">
-            <div className="px-4 py-5 bg-white space-y-6 sm:p-6">
-              <form onSubmit={handleSubmit}>
-                <div className="grid grid-cols-3 gap-6">
-                  <div className="col-span-3 sm:col-span-2">
-                    <label htmlFor="code" className="block text-sm font-medium text-gray-700">
-                      Código del Cupón
-                    </label>
-                    <div className="mt-1 flex rounded-md shadow-sm">
-                      <input
-                        type="text"
-                        id="code"
-                        value={code}
-                        onChange={(e) => setCode(e.target.value)}
-                        className="focus:ring-blue-500 focus:border-blue-500 flex-1 block w-full rounded-md sm:text-sm border-gray-300"
-                        placeholder="EJEMPLO20"
-                        required
-                      />
-                    </div>
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-3 gap-6 mt-4">
-                  <div className="col-span-3 sm:col-span-1">
-                    <label htmlFor="discount" className="block text-sm font-medium text-gray-700">
-                      Descuento (%)
-                    </label>
-                    <div className="mt-1 flex rounded-md shadow-sm">
-                      <input
-                        type="number"
-                        id="discount"
-                        value={discount}
-                        onChange={(e) => setDiscount(e.target.value)}
-                        className="focus:ring-blue-500 focus:border-blue-500 flex-1 block w-full rounded-md sm:text-sm border-gray-300"
-                        placeholder="20"
-                        min="1"
-                        max="100"
-                        required
-                      />
-                    </div>
-                  </div>
-
-                  <div className="col-span-3 sm:col-span-2">
-                    <label htmlFor="expiryDate" className="block text-sm font-medium text-gray-700">
-                      Fecha de Expiración
-                    </label>
-                    <div className="mt-1 flex rounded-md shadow-sm">
-                      <input
-                        type="date"
-                        id="expiryDate"
-                        value={expiryDate}
-                        onChange={(e) => setExpiryDate(e.target.value)}
-                        className="focus:ring-blue-500 focus:border-blue-500 flex-1 block w-full rounded-md sm:text-sm border-gray-300"
-                        required
-                      />
-                    </div>
-                  </div>
-                </div>
-
-                <div className="mt-4">
-                  <label className="flex items-center">
-                    <input type="checkbox" className="rounded border-gray-300 text-blue-600 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50" />
-                    <span className="ml-2 text-sm text-gray-600">Cupón activo</span>
-                  </label>
-                </div>
-
-                <div className="px-4 py-3 bg-gray-50 text-right sm:px-6 mt-6">
-                  <button
-                    type="button"
-                    onClick={() => router.push('/')}
-                    className="inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-                  >
-                    Cancelar
-                  </button>
-                  <button
-                    type="submit"
-                    className="ml-3 inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
-                  >
-                    Crear Cupón
-                  </button>
-                </div>
-              </form>
+        <div className="mb-8">
+          <div className="flex justify-between items-center">
+            <div>
+              <h1 className="text-2xl font-bold text-gray-900">Gestión de Cupones</h1>
+              <p className="text-gray-600">Administra los cupones de descuento de tu tienda</p>
             </div>
+            <Link href="/coupons/create">
+              <Button>Crear Cupón</Button>
+            </Link>
           </div>
         </div>
+
+        {/* Stats Cards */}
+        {stats && (
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+            <Card>
+              <CardContent className="p-6">
+                <div className="flex items-center">
+                  <div className="flex-shrink-0">
+                    <div className="w-8 h-8 bg-blue-500 rounded-lg flex items-center justify-center">
+                      <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
+                      </svg>
+                    </div>
+                  </div>
+                  <div className="ml-4">
+                    <p className="text-sm font-medium text-gray-600">Total Cupones</p>
+                    <p className="text-2xl font-bold text-gray-900">{stats.total_coupons}</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardContent className="p-6">
+                <div className="flex items-center">
+                  <div className="flex-shrink-0">
+                    <div className="w-8 h-8 bg-green-500 rounded-lg flex items-center justify-center">
+                      <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                    </div>
+                  </div>
+                  <div className="ml-4">
+                    <p className="text-sm font-medium text-gray-600">Activos</p>
+                    <p className="text-2xl font-bold text-gray-900">{stats.active_coupons}</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardContent className="p-6">
+                <div className="flex items-center">
+                  <div className="flex-shrink-0">
+                    <div className="w-8 h-8 bg-red-500 rounded-lg flex items-center justify-center">
+                      <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                    </div>
+                  </div>
+                  <div className="ml-4">
+                    <p className="text-sm font-medium text-gray-600">Expirados</p>
+                    <p className="text-2xl font-bold text-gray-900">{stats.expired_coupons}</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardContent className="p-6">
+                <div className="flex items-center">
+                  <div className="flex-shrink-0">
+                    <div className="w-8 h-8 bg-purple-500 rounded-lg flex items-center justify-center">
+                      <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+                      </svg>
+                    </div>
+                  </div>
+                  <div className="ml-4">
+                    <p className="text-sm font-medium text-gray-600">Total Usos</p>
+                    <p className="text-2xl font-bold text-gray-900">{stats.total_usage}</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        )}
+
+        {/* Filters */}
+        <div className="mb-6">
+          <div className="flex space-x-4">
+            <button
+              onClick={() => setFilter('all')}
+              className={`px-4 py-2 text-sm font-medium rounded-md ${filter === 'all'
+                  ? 'bg-blue-100 text-blue-700'
+                  : 'text-gray-500 hover:text-gray-700'
+                }`}
+            >
+              Todos
+            </button>
+            <button
+              onClick={() => setFilter('active')}
+              className={`px-4 py-2 text-sm font-medium rounded-md ${filter === 'active'
+                  ? 'bg-blue-100 text-blue-700'
+                  : 'text-gray-500 hover:text-gray-700'
+                }`}
+            >
+              Activos
+            </button>
+            <button
+              onClick={() => setFilter('expired')}
+              className={`px-4 py-2 text-sm font-medium rounded-md ${filter === 'expired'
+                  ? 'bg-blue-100 text-blue-700'
+                  : 'text-gray-500 hover:text-gray-700'
+                }`}
+            >
+              Expirados
+            </button>
+          </div>
+        </div>
+
+        {/* Coupons List */}
+        {loading ? (
+          <div className="text-center py-12">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
+            <p className="mt-4 text-gray-600">Cargando cupones...</p>
+          </div>
+        ) : error ? (
+          <div className="text-center py-12">
+            <div className="text-red-600 mb-4">Error: {error}</div>
+            <Button onClick={loadData}>Reintentar</Button>
+          </div>
+        ) : coupons.length === 0 ? (
+          <Card>
+            <CardContent className="text-center py-12">
+              <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
+              </svg>
+              <h3 className="mt-2 text-sm font-medium text-gray-900">No hay cupones</h3>
+              <p className="mt-1 text-sm text-gray-500">Comienza creando tu primer cupón de descuento.</p>
+              <div className="mt-6">
+                <Link href="/coupons/create">
+                  <Button>Crear Cupón</Button>
+                </Link>
+              </div>
+            </CardContent>
+          </Card>
+        ) : (
+          <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
+            {coupons.map((coupon) => {
+              const status = getCouponStatus(coupon);
+              return (
+                <Card key={coupon.id}>
+                  <CardHeader>
+                    <div className="flex justify-between items-start">
+                      <div>
+                        <h3 className="text-lg font-medium text-gray-900">{coupon.code}</h3>
+                        <p className="text-sm text-gray-500">{coupon.discount}% de descuento</p>
+                      </div>
+                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${status.color}`}>
+                        {status.label}
+                      </span>
+                    </div>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-2">
+                      <div className="flex justify-between text-sm">
+                        <span className="text-gray-500">Usos:</span>
+                        <span className="text-gray-900">
+                          {coupon.used_count}{coupon.usage_limit ? ` / ${coupon.usage_limit}` : ''}
+                        </span>
+                      </div>
+                      <div className="flex justify-between text-sm">
+                        <span className="text-gray-500">Válido desde:</span>
+                        <span className="text-gray-900">{formatDate(coupon.valid_from)}</span>
+                      </div>
+                      <div className="flex justify-between text-sm">
+                        <span className="text-gray-500">Expira:</span>
+                        <span className="text-gray-900">{formatDate(coupon.valid_until)}</span>
+                      </div>
+                    </div>
+                    <div className="mt-4 flex space-x-2">
+                      <Link href={`/coupons/${coupon.id}/edit`}>
+                        <Button variant="outline" size="sm" className="flex-1">
+                          Editar
+                        </Button>
+                      </Link>
+                      <Button
+                        variant="secondary"
+                        size="sm"
+                        onClick={() => handleDeleteCoupon(coupon.id, coupon.code)}
+                        className="flex-1"
+                      >
+                        Eliminar
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              );
+            })}
+          </div>
+        )}
       </div>
     </div>
   );
