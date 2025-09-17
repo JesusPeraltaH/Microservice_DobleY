@@ -54,7 +54,7 @@ export default function CreateSalePage() {
 
   const addToCart = (product: Product) => {
     const existingItem = cart.find(item => item.product._id === product._id);
-    
+
     if (existingItem) {
       if (existingItem.quantity < product.stock) {
         setCart(cart.map(item =>
@@ -169,7 +169,7 @@ export default function CreateSalePage() {
   return (
     <div className="min-h-screen bg-gray-50">
       <Navbar isAuthenticated={true} userEmail={user.email} showMobileMenu={false} />
-      
+
       <div className="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center mb-8">
           <h1 className="text-2xl font-bold text-gray-900">Nueva Venta</h1>
@@ -186,7 +186,7 @@ export default function CreateSalePage() {
           <div className="lg:col-span-2">
             <div className="bg-white p-6 rounded-lg shadow mb-6">
               <h2 className="text-lg font-semibold mb-4">Productos Disponibles</h2>
-              
+
               <div className="mb-4">
                 <input
                   type="text"
@@ -210,11 +210,10 @@ export default function CreateSalePage() {
                       <button
                         onClick={() => addToCart(product)}
                         disabled={product.stock === 0}
-                        className={`px-3 py-1 rounded text-sm ${
-                          product.stock === 0
-                            ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                            : 'bg-blue-600 text-white hover:bg-blue-700'
-                        }`}
+                        className={`px-3 py-1 rounded text-sm ${product.stock === 0
+                          ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                          : 'bg-blue-600 text-white hover:bg-blue-700'
+                          }`}
                       >
                         {product.stock === 0 ? 'Sin stock' : 'Agregar'}
                       </button>
@@ -229,7 +228,7 @@ export default function CreateSalePage() {
           <div className="lg:col-span-1">
             <div className="bg-white p-6 rounded-lg shadow sticky top-6">
               <h2 className="text-lg font-semibold mb-4">Carrito de Venta</h2>
-              
+
               {cart.length === 0 ? (
                 <p className="text-gray-500 text-center py-8">No hay productos en el carrito</p>
               ) : (
@@ -270,6 +269,23 @@ export default function CreateSalePage() {
                     ))}
                   </div>
 
+                  {/* 🔹 Aquí agregamos el input de cupón */}
+                  <div className="flex items-center space-x-2 mb-3">
+                    <input
+                      type="text"
+                      placeholder="Cupón"
+                      //value={couponCode}
+                      //onChange={(e) => setCouponCode(e.target.value)}
+                      className="flex-1 px-3 py-2 border border-gray-300 rounded-md text-sm"
+                    />
+                    <button
+                      // onClick={applyCoupon}
+                      className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 text-sm font-medium"
+                    >
+                      Aplicar
+                    </button>
+                  </div>
+
                   <div className="space-y-3 border-t pt-4">
                     <div className="flex justify-between font-semibold text-lg">
                       <span>Total:</span>
@@ -304,6 +320,7 @@ export default function CreateSalePage() {
               )}
             </div>
           </div>
+
         </div>
       </div>
     </div>
