@@ -1,9 +1,9 @@
-// components/layout/Navbar.tsx
 'use client';
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter, usePathname } from 'next/navigation';
+import { authService } from '@/services/authService';
 
 interface NavbarProps {
   isAuthenticated?: boolean;
@@ -13,30 +13,49 @@ interface NavbarProps {
 }
 
 export default function Navbar({ 
-  isAuthenticated = false, 
-  userEmail, 
+  isAuthenticated: initialAuth = false, 
+  userEmail = '', 
   onMenuClick,
   showMobileMenu = false 
 }: NavbarProps) {
-  const [user, setUser] = useState<any>(null);
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [isAuthenticated, setIsAuthenticated] = useState(initialAuth);
+  const [email, setEmail] = useState(userEmail);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(showMobileMenu);
   const router = useRouter();
   const pathname = usePathname();
 
   useEffect(() => {
-    if (isAuthenticated && userEmail) {
-      setUser({ email: userEmail });
-    } else {
-      const userData = localStorage.getItem('user');
-      if (userData) {
-        setUser(JSON.parse(userData));
+    // Función para verificar auth
+    const checkAuth = () => {
+      const authenticated = authService.isAuthenticated();
+      setIsAuthenticated(authenticated);
+      
+      if (authenticated) {
+        const user = authService.getCurrentUser();
+        if (user) {
+          setEmail(user.email);
+        }
+      } else {
+        setEmail('');
       }
-    }
-  }, [isAuthenticated, userEmail]);
+    };
+
+    // Verificación inicial
+    checkAuth();
+
+    // Escuchar cambios de autenticación
+    const handleAuthChange = () => {
+      checkAuth();
+    };
+
+    window.addEventListener('authChange', handleAuthChange as EventListener);
+    return () => window.removeEventListener('authChange', handleAuthChange as EventListener);
+  }, []);
 
   const handleLogout = () => {
-    localStorage.removeItem('user');
-    localStorage.removeItem('token');
+    authService.logout();
+    setIsAuthenticated(false);
+    setEmail('');
     router.push('/login');
   };
 
@@ -106,10 +125,10 @@ export default function Navbar({
           </div>
 
           <div className="flex items-center">
-            {user ? (
+            {isAuthenticated ? (
               <div className="flex items-center space-x-4">
                 <span className="text-sm text-gray-700 hidden sm:block">
-                  Hola, <span className="font-medium">{user.email}</span>
+                  Hola, <span className="font-medium">{email}</span>
                 </span>
                 <button
                   onClick={handleLogout}

@@ -7,6 +7,7 @@ import Button from '@/components/ui/Button';
 import Input from '@/components/ui/Input';
 import Card, { CardHeader, CardContent } from '@/components/ui/Card';
 import Navbar from '@/components/layout/Navbar';
+import { authService } from '@/services/authService';
 
 export default function SignupPage() {
   const [formData, setFormData] = useState({
@@ -25,7 +26,6 @@ export default function SignupPage() {
       ...formData,
       [e.target.name]: e.target.value
     });
-    // Limpiar error cuando el usuario empiece a escribir
     if (error) setError('');
   };
 
@@ -34,7 +34,7 @@ export default function SignupPage() {
     setLoading(true);
     setError('');
 
-    // Validaciones del cliente
+    // Validaciones en cliente
     if (formData.password !== formData.confirmPassword) {
       setError('Las contraseñas no coinciden');
       setLoading(false);
@@ -48,29 +48,18 @@ export default function SignupPage() {
     }
 
     try {
-      const response = await fetch('/api/auth/register', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          email: formData.email,
-          password: formData.password,
-          firstName: formData.firstName,
-          lastName: formData.lastName
-        }),
+      const { user, token } = await authService.register({
+        email: formData.email,
+        password: formData.password,
+        firstName: formData.firstName,
+        lastName: formData.lastName
       });
 
-      const data = await response.json();
+      // Guardar usuario y token en localStorage
+      localStorage.setItem('user', JSON.stringify(user));
+      localStorage.setItem('token', token);
 
-      if (!response.ok) {
-        throw new Error(data.error || 'Error en el registro');
-      }
-
-      // Guardar usuario en localStorage y redirigir
-      localStorage.setItem('user', JSON.stringify(data.user));
       router.push('/dashboard');
-
     } catch (err: any) {
       setError(err.message || 'Error en el registro. Intenta nuevamente.');
     } finally {
@@ -108,7 +97,7 @@ export default function SignupPage() {
                     placeholder="Tu apellido"
                   />
                 </div>
-                
+
                 <Input
                   label="Email"
                   type="email"
@@ -118,7 +107,7 @@ export default function SignupPage() {
                   placeholder="tu@email.com"
                   required
                 />
-                
+
                 <Input
                   label="Contraseña"
                   type="password"

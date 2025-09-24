@@ -4,6 +4,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Navbar from '@/components/layout/Navbar';
+import { inventoryService } from '@/services/inventoryService';
 
 export default function CreateProduct() {
   const [name, setName] = useState('');
@@ -20,28 +21,17 @@ export default function CreateProduct() {
     setError('');
 
     try {
-      const response = await fetch('/api/products', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          name,
-          price: parseFloat(price),
-          stock: parseInt(stock),
-          description
-        }),
+      await inventoryService.createProduct({
+        name,
+        price: parseFloat(price),
+        stock: parseInt(stock),
+        description
       });
 
-      if (response.ok) {
-        alert('Producto creado con éxito!');
-        router.push('/products');
-      } else {
-        const data = await response.json();
-        setError(data.error || 'Error al crear producto');
-      }
-    } catch (error) {
-      setError('Error de conexión');
+      alert('Producto creado con éxito!');
+      router.push('/products');
+    } catch (err: any) {
+      setError(err.message || 'Error al crear producto');
     } finally {
       setLoading(false);
     }

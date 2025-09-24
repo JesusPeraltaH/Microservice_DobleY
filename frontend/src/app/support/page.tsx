@@ -3,16 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Navbar from '@/components/layout/Navbar';
-
-interface Ticket {
-  _id: string;
-  title: string;
-  customer: string;
-  status: string;
-  priority: string;
-  createdAt: string;
-  updatedAt: string;
-}
+import { supportService, Ticket } from '@/services/supportService';
 
 export default function SupportTickets() {
   const [tickets, setTickets] = useState<Ticket[]>([]);
@@ -29,28 +20,21 @@ export default function SupportTickets() {
   const router = useRouter();
 
   useEffect(() => {
-    // Obtener usuario del localStorage
     const userData = localStorage.getItem('user');
     if (userData) {
       setUser(JSON.parse(userData));
     }
-
-    // Obtener tickets de la API
     fetchTickets();
   }, []);
 
   const fetchTickets = async () => {
     try {
-      const response = await fetch('/api/support');
-      if (response.ok) {
-        const data = await response.json();
-        setTickets(data);
-      } else {
-        setError('Error al obtener tickets');
-      }
+      setLoading(true);
+      const ticketsData = await supportService.getTickets();
+      setTickets(ticketsData);
     } catch (error) {
-      setError('Error de conexión');
-      console.error('Error:', error);
+      console.error('Error fetching tickets:', error);
+      setError('Error al obtener tickets');
     } finally {
       setLoading(false);
     }
@@ -58,10 +42,16 @@ export default function SupportTickets() {
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'Abierto': return 'bg-red-100 text-red-800';
-      case 'En proceso': return 'bg-yellow-100 text-yellow-800';
-      case 'Cerrado': return 'bg-green-100 text-green-800';
-      default: return 'bg-gray-100 text-gray-800';
+      case 'Abierto':
+      case 'Adjetro': // ← ESTADO REAL DE TU BD
+        return 'bg-red-100 text-red-800';
+      case 'En proceso': 
+        return 'bg-yellow-100 text-yellow-800';
+      case 'Resuelto':
+      case 'Cerrado': 
+        return 'bg-green-100 text-green-800';
+      default: 
+        return 'bg-gray-100 text-gray-800';
     }
   };
 
@@ -78,42 +68,43 @@ export default function SupportTickets() {
     ? tickets 
     : tickets.filter(ticket => ticket.status === activeTab);
 
-  const handleCreateTicket = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    try {
-      const response = await fetch('/api/support', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          title: newTicket.title,
-          description: newTicket.description,
-          priority: newTicket.priority,
-          customer: user?.email || "Usuario Actual"
-        }),
-      });
-
-      if (response.ok) {
-        // Recargar la lista de tickets
-        fetchTickets();
-        setNewTicket({ title: '', description: '', priority: 'Media' });
-        setShowNewTicketForm(false);
-        alert('Ticket creado con éxito!');
-      } else {
-        const data = await response.json();
-        alert(data.error || 'Error al crear el ticket');
-      }
-    } catch (error) {
-      console.error('Error:', error);
-      alert('Error al crear el ticket');
-    }
-  };
-
   const getStatusCount = (status: string) => {
+    // Para contar tickets "Abiertos" incluye también "Adjetro"
+    if (status === 'Abierto') {
+      return tickets.filter(ticket => 
+        ticket.status === 'Abierto' || ticket.status === 'Adjetro'
+      ).length;
+    }
     return tickets.filter(ticket => ticket.status === status).length;
   };
+
+  const handleCreateTicket = async (e: React.FormEvent) => {
+  e.preventDefault();
+  
+  try {
+    const ticketData = {
+      title: newTicket.title,
+      description: newTicket.description,
+      priority: newTicket.priority,
+      customer: user?.email || "Usuario Actual",
+      status: 'Abierto' // ← CAMBIAR A "Abierto" que es válido
+    };
+
+    const createdTicket = await supportService.createTicket(ticketData);
+    
+    if (createdTicket) {
+      fetchTickets();
+      setNewTicket({ title: '', description: '', priority: 'Media' });
+      setShowNewTicketForm(false);
+      alert('Ticket creado con éxito!');
+    } else {
+      alert('Error al crear el ticket');
+    }
+  } catch (error) {
+    console.error('Error:', error);
+    alert('Error al crear el ticket');
+  }
+};
 
   if (loading) {
     return (
@@ -130,7 +121,6 @@ export default function SupportTickets() {
     <div className="min-h-screen bg-gray-50">
       <Navbar isAuthenticated={!!user} userEmail={user?.email} />
       <div className="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
-        {/* Encabezado con información del usuario */}
         <div className="mb-6">
           <h1 className="text-3xl font-bold text-gray-900">Tickets de Soporte</h1>
           {user && (
@@ -161,95 +151,8 @@ export default function SupportTickets() {
           </button>
         </div>
 
-        {/* Estadísticas rápidas */}
-        <div className="grid grid-cols-1 gap-5 sm:grid-cols-4 mb-6">
-          <div className="bg-white overflow-hidden shadow rounded-lg">
-            <div className="px-4 py-5 sm:p-6">
-              <div className="flex items-center">
-                <div className="flex-shrink-0 bg-blue-500 rounded-md p-3">
-                  <svg className="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
-                  </svg>
-                </div>
-                <div className="ml-5 w-0 flex-1">
-                  <dl>
-                    <dt className="text-sm font-medium text-gray-500 truncate">Total Tickets</dt>
-                    <dd className="text-lg font-medium text-gray-900">{tickets.length}</dd>
-                  </dl>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-white overflow-hidden shadow rounded-lg">
-            <div className="px-4 py-5 sm:p-6">
-              <div className="flex items-center">
-                <div className="flex-shrink-0 bg-red-500 rounded-md p-3">
-                  <svg className="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                  </svg>
-                </div>
-                <div className="ml-5 w-0 flex-1">
-                  <dl>
-                    <dt className="text-sm font-medium text-gray-500 truncate">Abiertos</dt>
-                    <dd className="text-lg font-medium text-red-600">{getStatusCount('Abierto')}</dd>
-                  </dl>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-white overflow-hidden shadow rounded-lg">
-            <div className="px-4 py-5 sm:p-6">
-              <div className="flex items-center">
-                <div className="flex-shrink-0 bg-yellow-500 rounded-md p-3">
-                  <svg className="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  </svg>
-                </div>
-                <div className="ml-5 w-0 flex-1">
-                  <dl>
-                    <dt className="text-sm font-medium text-gray-500 truncate">En proceso</dt>
-                    <dd className="text-lg font-medium text-yellow-600">{getStatusCount('En proceso')}</dd>
-                  </dl>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-white overflow-hidden shadow rounded-lg">
-            <div className="px-4 py-5 sm:p-6">
-              <div className="flex items-center">
-                <div className="flex-shrink-0 bg-green-500 rounded-md p-3">
-                  <svg className="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  </svg>
-                </div>
-                <div className="ml-5 w-0 flex-1">
-                  <dl>
-                    <dt className="text-sm font-medium text-gray-500 truncate">Cerrados</dt>
-                    <dd className="text-lg font-medium text-green-600">{getStatusCount('Cerrado')}</dd>
-                  </dl>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
         {/* Filtros */}
         <div className="mb-6 bg-white p-4 rounded-lg shadow">
-          <div className="sm:hidden">
-            <select
-              className="block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md"
-              value={activeTab}
-              onChange={(e) => setActiveTab(e.target.value)}
-            >
-              <option value="all">Todos los tickets</option>
-              <option value="Abierto">Abiertos</option>
-              <option value="En proceso">En proceso</option>
-              <option value="Cerrado">Cerrados</option>
-            </select>
-          </div>
           <div className="hidden sm:block">
             <nav className="flex space-x-4">
               <button
@@ -260,7 +163,7 @@ export default function SupportTickets() {
                     : 'text-gray-500 hover:text-gray-700'
                 }`}
               >
-                Todos
+                Todos ({tickets.length})
               </button>
               <button
                 onClick={() => setActiveTab('Abierto')}
@@ -290,7 +193,7 @@ export default function SupportTickets() {
                     : 'text-gray-500 hover:text-gray-700'
                 }`}
               >
-                Cerrados ({getStatusCount('Cerrado')})
+                Cerrados ({getStatusCount('Cerrado') + getStatusCount('Resuelto')})
               </button>
             </nav>
           </div>
@@ -367,7 +270,6 @@ export default function SupportTickets() {
           <table className="min-w-full divide-y divide-gray-200">
             <thead className="bg-gray-50">
               <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ID</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Asunto</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Cliente</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Prioridad</th>
@@ -377,10 +279,13 @@ export default function SupportTickets() {
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
               {filteredTickets.map((ticket) => (
-                <tr key={ticket._id} className="hover:bg-gray-50 cursor-pointer">
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">#{ticket._id.substring(0, 8)}</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{ticket.title}</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{ticket.customer}</td>
+                <tr key={ticket._id} className="hover:bg-gray-50">
+                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                    {ticket.title}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                    {ticket.customer}
+                  </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                     <span className={getPriorityColor(ticket.priority)}>
                       {ticket.priority}
@@ -392,7 +297,7 @@ export default function SupportTickets() {
                     </span>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                    {new Date(ticket.createdAt).toLocaleDateString()}
+                    {new Date(ticket.createdAt).toLocaleDateString('es-ES')}
                   </td>
                 </tr>
               ))}

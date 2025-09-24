@@ -3,14 +3,7 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Navbar from '@/components/layout/Navbar';
-
-interface Product {
-  _id: string;
-  name: string;
-  price: number;
-  stock: number;
-  description: string;
-}
+import { inventoryService, Product } from '@/services/inventoryService';
 
 export default function Products() {
   const [products, setProducts] = useState<Product[]>([]);
@@ -25,48 +18,33 @@ export default function Products() {
       setUser(JSON.parse(userData));
     }
 
-    // Obtener productos de la API
+    // Obtener productos del microservicio
     fetchProducts();
   }, []);
 
   const fetchProducts = async () => {
     try {
-      const response = await fetch('/api/products');
-      if (response.ok) {
-        const data = await response.json();
-        setProducts(data);
-      } else {
-        setError('Error al obtener productos');
-      }
-    } catch (error) {
-      setError('Error de conexión');
-      console.error('Error:', error);
+      const productsData = await inventoryService.getProducts();
+      setProducts(productsData);
+    } catch (err: any) {
+      setError(err.message || 'Error al obtener productos');
     } finally {
       setLoading(false);
     }
   };
 
   const deleteProduct = async (id: string) => {
-  if (confirm('¿Estás seguro de que quieres eliminar este producto?')) {
-    try {
-      const response = await fetch(`/api/products/${id}`, {
-        method: 'DELETE',
-      });
-      
-      if (response.ok) {
+    if (confirm('¿Estás seguro de que quieres eliminar este producto?')) {
+      try {
+        await inventoryService.deleteProduct(id);
         // Actualizar la lista de productos
         setProducts(products.filter(product => product._id !== id));
         alert('Producto eliminado con éxito');
-      } else {
-        const data = await response.json();
-        alert(data.error || 'Error al eliminar producto');
+      } catch (err: any) {
+        alert(err.message || 'Error al eliminar producto');
       }
-    } catch (error) {
-      console.error('Error:', error);
-      alert('Error al eliminar producto');
     }
-  }
-};
+  };
 
   if (loading) {
     return (

@@ -1,12 +1,13 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import Button from '@/components/ui/Button';
 import Input from '@/components/ui/Input';
 import Card, { CardHeader, CardContent } from '@/components/ui/Card';
 import Navbar from '@/components/layout/Navbar';
+import { authService } from '@/services/authService';
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
@@ -15,32 +16,45 @@ export default function LoginPage() {
   const [error, setError] = useState('');
   const router = useRouter();
 
+  // Redirigir si ya está autenticado
+  useEffect(() => {
+    if (authService.isAuthenticated()) {
+      router.replace('/dashboard');
+    }
+  }, [router]);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setError('');
 
     try {
-      const response = await fetch('/api/auth/login', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ email, password }),
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.error || 'Error en el login');
+      // Validación básica
+      if (!email || !password) {
+        throw new Error('Por favor, completa todos los campos');
       }
 
-      // Guardar usuario en localStorage y redirigir
-      localStorage.setItem('user', JSON.stringify(data.user));
-      router.push('/dashboard');
-
+      // Usar el servicio de autenticación
+      const { user, token } = await authService.login({ email, password });
+      
+      // Guardar en localStorage
+      localStorage.setItem('user', JSON.stringify(user));
+      localStorage.setItem('token', token);
+      
+      // Establecer cookie para el middleware (24 horas)
+      document.cookie = `token=${token}; path=/; max-age=86400; samesite=lax`;
+      
+      // Disparar evento personalizado para notificar a otros componentes
+      window.dispatchEvent(new CustomEvent('authChange', { 
+        detail: { isAuthenticated: true, user } 
+      }));
+      
+      // Redirigir al dashboard
+      router.replace('/dashboard');
+      
     } catch (err: any) {
       setError(err.message || 'Error en el login. Intenta nuevamente.');
+      console.error('Error en login:', err);
     } finally {
       setLoading(false);
     }
@@ -67,7 +81,7 @@ export default function LoginPage() {
                   placeholder="tu@email.com"
                   required
                 />
-                
+
                 <Input
                   label="Contraseña"
                   type="password"
@@ -95,7 +109,10 @@ export default function LoginPage() {
               <div className="mt-6 text-center">
                 <p className="text-sm text-gray-600">
                   ¿No tienes cuenta?{' '}
-                  <Link href="/signup" className="text-blue-600 hover:text-blue-500 font-medium">
+                  <Link
+                    href="/signup"
+                    className="text-blue-600 hover:text-blue-500 font-medium"
+                  >
                     Regístrate
                   </Link>
                 </p>

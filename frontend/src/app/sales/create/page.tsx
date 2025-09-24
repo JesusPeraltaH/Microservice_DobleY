@@ -4,14 +4,8 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Navbar from '@/components/layout/Navbar';
-
-interface Product {
-  _id: string;
-  name: string;
-  price: number;
-  stock: number;
-  description?: string;
-}
+import { inventoryService, Product } from '@/services/inventoryService';
+import { orderService } from '@/services/orderService';
 
 interface CartItem {
   product: Product;
@@ -40,11 +34,8 @@ export default function CreateSalePage() {
 
   const fetchProducts = async () => {
     try {
-      const response = await fetch('/api/products');
-      if (response.ok) {
-        const data = await response.json();
-        setProducts(data);
-      }
+      const productsData = await inventoryService.getProducts();
+      setProducts(productsData);
     } catch (error) {
       console.error('Error fetching products:', error);
     } finally {
@@ -112,41 +103,16 @@ export default function CreateSalePage() {
         paymentMethod: 'Efectivo'
       };
 
-      const response = await fetch('/api/orders', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(orderData),
-      });
+      await orderService.createOrder(orderData);
 
-      if (response.ok) {
-        // Actualizar stock de productos
-        await Promise.all(
-          cart.map(item =>
-            fetch(`/api/products/${item.product._id}`, {
-              method: 'PATCH',
-              headers: {
-                'Content-Type': 'application/json',
-              },
-              body: JSON.stringify({
-                stock: item.product.stock - item.quantity
-              }),
-            })
-          )
-        );
-
-        alert('Venta realizada con éxito!');
-        setCart([]);
-        setCustomerName('');
-        setCustomerEmail('');
-        fetchProducts(); // Refrescar productos para actualizar stock
-      } else {
-        alert('Error al procesar la venta');
-      }
-    } catch (error) {
-      console.error('Error processing sale:', error);
-      alert('Error al procesar la venta');
+      alert('Venta realizada con éxito!');
+      setCart([]);
+      setCustomerName('');
+      setCustomerEmail('');
+      fetchProducts(); // refrescar productos y stock
+    } catch (err: any) {
+      console.error('Error processing sale:', err);
+      alert(err.message || 'Error al procesar la venta');
     }
   };
 
@@ -269,17 +235,14 @@ export default function CreateSalePage() {
                     ))}
                   </div>
 
-                  {/* 🔹 Aquí agregamos el input de cupón */}
+                  {/* Cupón (futuro uso) */}
                   <div className="flex items-center space-x-2 mb-3">
                     <input
                       type="text"
                       placeholder="Cupón"
-                      //value={couponCode}
-                      //onChange={(e) => setCouponCode(e.target.value)}
                       className="flex-1 px-3 py-2 border border-gray-300 rounded-md text-sm"
                     />
                     <button
-                      // onClick={applyCoupon}
                       className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 text-sm font-medium"
                     >
                       Aplicar
@@ -320,7 +283,6 @@ export default function CreateSalePage() {
               )}
             </div>
           </div>
-
         </div>
       </div>
     </div>
