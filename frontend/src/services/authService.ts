@@ -83,20 +83,34 @@ class AuthService {
   // Verificar autenticación
   isAuthenticated(): boolean {
     if (typeof window === 'undefined') return false;
+<<<<<<< Updated upstream
     
     const token = localStorage.getItem('token');
     const user = localStorage.getItem('user');
     
+=======
+
+    const token = localStorage.getItem('token');
+    const user = localStorage.getItem('user');
+
+>>>>>>> Stashed changes
     return !!(token && user);
   }
 
   // Obtener usuario actual
   getCurrentUser(): User | null {
     if (typeof window === 'undefined') return null;
+<<<<<<< Updated upstream
     
     const userStr = localStorage.getItem('user');
     if (!userStr) return null;
     
+=======
+
+    const userStr = localStorage.getItem('user');
+    if (!userStr) return null;
+
+>>>>>>> Stashed changes
     try {
       return JSON.parse(userStr);
     } catch {
@@ -107,7 +121,11 @@ class AuthService {
   // Cerrar sesión
   logout(): void {
     if (typeof window === 'undefined') return;
+<<<<<<< Updated upstream
     
+=======
+
+>>>>>>> Stashed changes
     localStorage.removeItem('user');
     localStorage.removeItem('token');
     // Eliminar cookie también

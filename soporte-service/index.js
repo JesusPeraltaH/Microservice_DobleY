@@ -1,3 +1,4 @@
+<<<<<<< Updated upstream
 console.log('MongoDB URI:', process.env.MONGODB_URI);
 console.log('Port:', process.env.PORT);
 const express = require('express');
@@ -7,11 +8,45 @@ require('dotenv').config();
 
 const app = express();
 const PORT = process.env.PORT || 3105;
+=======
+const express = require('express');
+const cors = require('cors');
+require('dotenv').config();
+
+// Import configurations and middleware
+const { connectMongoDB } = require('./src/config/mongodb');
+// RabbitMQ removed - notifications handled by separate microservice
+const { errorHandler, notFoundHandler } = require('./src/middleware/errorHandler');
+
+// Import routes
+const ticketRoutes = require('./src/routes/ticketRoutes');
+
+const app = express();
+const PORT = process.env.PORT || 3005;
+
+/**
+ * Initialize application
+ */
+async function initializeApp() {
+  try {
+    // Connect to MongoDB (read-only for user/sales validation)
+    await connectMongoDB();
+
+    // RabbitMQ removed - notifications handled by separate microservice
+
+    console.log('✅ Application initialized successfully');
+  } catch (error) {
+    console.error('❌ Failed to initialize application:', error.message);
+    process.exit(1);
+  }
+}
+>>>>>>> Stashed changes
 
 // Middleware
 app.use(cors({
   origin: process.env.FRONTEND_URL || 'http://localhost:3000',
   credentials: true,
+<<<<<<< Updated upstream
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization', 'Cookie']
 }));
@@ -155,4 +190,81 @@ app.listen(PORT, () => {
   console.log(`Health check: http://localhost:${PORT}/health`);
   console.log(`Tickets endpoint: http://localhost:${PORT}/tickets`);
   console.log(`Stats endpoint: http://localhost:${PORT}/tickets/stats`);
+=======
+  methods: ['GET', 'POST', 'PATCH', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'Cookie']
+}));
+
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+
+// Request logging middleware
+app.use((req, res, next) => {
+  console.log(`📨 ${req.method} ${req.path}`, {
+    query: req.query,
+    body: req.method !== 'GET' ? req.body : undefined,
+    userAgent: req.get('User-Agent'),
+    ip: req.ip
+  });
+  next();
+});
+
+// Health check endpoint
+app.get('/health', (req, res) => {
+  res.json({
+    service: 'Support Tickets Service',
+    status: 'healthy',
+    timestamp: new Date().toISOString(),
+    version: '1.0.0',
+    environment: process.env.NODE_ENV || 'development',
+    connections: {
+      mongodb: 'connected',
+      supabase: 'configured',
+      rabbitmq: 'optional'
+    }
+  });
+});
+
+// API routes
+app.use('/tickets', ticketRoutes);
+
+// 404 handler for undefined routes
+app.use('*', notFoundHandler);
+
+// Global error handler
+app.use(errorHandler);
+
+// Graceful shutdown
+process.on('SIGTERM', async () => {
+  console.log('🛑 SIGTERM received, shutting down gracefully...');
+  process.exit(0);
+});
+
+process.on('SIGINT', async () => {
+  console.log('🛑 SIGINT received, shutting down gracefully...');
+  process.exit(0);
+});
+
+// Start server
+async function startServer() {
+  await initializeApp();
+
+  app.listen(PORT, () => {
+    console.log(`🎫 Support Tickets Service running on port ${PORT}`);
+    console.log(`📊 Health check: http://localhost:${PORT}/health`);
+    console.log(`🔗 API Base URL: http://localhost:${PORT}/tickets`);
+    console.log(`📚 Available endpoints:`);
+    console.log(`   POST   /tickets          - Create new ticket`);
+    console.log(`   GET    /tickets          - Get tickets (with filters)`);
+    console.log(`   GET    /tickets/stats    - Get ticket statistics`);
+    console.log(`   GET    /tickets/:id      - Get ticket by ID`);
+    console.log(`   PATCH  /tickets/:id      - Update ticket`);
+    console.log(`🔐 Authentication: JWT token required (Bearer token)`);
+  });
+}
+
+startServer().catch(error => {
+  console.error('❌ Failed to start server:', error);
+  process.exit(1);
+>>>>>>> Stashed changes
 });

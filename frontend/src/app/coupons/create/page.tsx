@@ -88,7 +88,7 @@ export default function CreateCoupon() {
                         id="code"
                         value={code}
                         onChange={(e) => setCode(e.target.value)}
-                        className="focus:ring-blue-500 focus:border-blue-500 flex-1 block w-full rounded-md sm:text-sm border-gray-300"
+                        className="focus:ring-blue-500 focus:border-blue-500 flex-1 block w-full rounded-md sm:text-sm border-gray-300 text-gray-900 placeholder-gray-500"
                         placeholder="EJEMPLO20"
                         required
                       />
@@ -116,7 +116,7 @@ export default function CreateCoupon() {
                         id="discount"
                         value={discount}
                         onChange={(e) => setDiscount(e.target.value)}
-                        className="focus:ring-blue-500 focus:border-blue-500 flex-1 block w-full rounded-md sm:text-sm border-gray-300"
+                        className="focus:ring-blue-500 focus:border-blue-500 flex-1 block w-full rounded-md sm:text-sm border-gray-300 text-gray-900 placeholder-gray-500"
                         placeholder="20"
                         min="1"
                         max="100"
@@ -125,7 +125,33 @@ export default function CreateCoupon() {
                     </div>
                   </div>
 
+<<<<<<< Updated upstream
                   {/* Fecha de Inicio */}
+=======
+<<<<<<< Updated upstream
+=======
+                  {/* Fecha de Inicio */}
+                  <div>
+                    <label htmlFor="validFrom" className="block text-sm font-medium text-gray-700">
+                      Fecha de Inicio
+                    </label>
+                    <div className="mt-1">
+                      <input
+                        type="datetime-local"
+                        id="validFrom"
+                        value={validFrom}
+                        onChange={(e) => setValidFrom(e.target.value)}
+                        className="focus:ring-blue-500 focus:border-blue-500 block w-full rounded-md sm:text-sm border-gray-300 text-gray-900"
+                      />
+                    </div>
+                    <p className="mt-2 text-sm text-gray-500">
+                      Fecha y hora desde cuando el cupón estará activo (opcional)
+                    </p>
+                  </div>
+
+>>>>>>> Stashed changes
+                  {/* Fecha de Expiración */}
+>>>>>>> Stashed changes
                   <div>
                     <label htmlFor="validFrom" className="block text-sm font-medium text-gray-700">
                       Fecha de Inicio
@@ -155,7 +181,41 @@ export default function CreateCoupon() {
                         id="expiryDate"
                         value={expiryDate}
                         onChange={(e) => setExpiryDate(e.target.value)}
+<<<<<<< Updated upstream
+<<<<<<< Updated upstream
                         className="focus:ring-blue-500 focus:border-blue-500 block w-full rounded-md sm:text-sm border-gray-300"
+<<<<<<< Updated upstream
+=======
+                        required
+                      />
+                    </div>
+                  </div>
+
+                  {/* Compra Mínima */}
+                  <div>
+                    <label htmlFor="minPurchase" className="block text-sm font-medium text-gray-700">
+                      Compra Mínima ($)
+                    </label>
+                    <div className="mt-1 flex rounded-md shadow-sm">
+                      <span className="inline-flex items-center px-3 rounded-l-md border border-r-0 border-gray-300 bg-gray-50 text-gray-500 text-sm">
+                        $
+                      </span>
+                      <input
+                        type="number"
+                        id="minPurchase"
+                        value={minPurchase}
+                        onChange={(e) => setMinPurchase(e.target.value)}
+                        className="focus:ring-blue-500 focus:border-blue-500 flex-1 block w-full rounded-none rounded-r-md sm:text-sm border-gray-300"
+                        placeholder="0.00"
+                        step="0.01"
+                        min="0"
+=======
+                        className="focus:ring-blue-500 focus:border-blue-500 block w-full rounded-md sm:text-sm border-gray-300 text-gray-900"
+>>>>>>> Stashed changes
+=======
+                        className="focus:ring-blue-500 focus:border-blue-500 block w-full rounded-md sm:text-sm border-gray-300 text-gray-900"
+>>>>>>> Stashed changes
+>>>>>>> Stashed changes
                       />
                     </div>
                     <p className="mt-2 text-sm text-gray-500">
@@ -174,7 +234,7 @@ export default function CreateCoupon() {
                         id="maxUses"
                         value={maxUses}
                         onChange={(e) => setMaxUses(e.target.value)}
-                        className="focus:ring-blue-500 focus:border-blue-500 flex-1 block w-full rounded-md sm:text-sm border-gray-300"
+                        className="focus:ring-blue-500 focus:border-blue-500 flex-1 block w-full rounded-md sm:text-sm border-gray-300 text-gray-900 placeholder-gray-500"
                         placeholder="100"
                         min="1"
                       />

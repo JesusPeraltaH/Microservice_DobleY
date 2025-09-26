@@ -159,7 +159,11 @@ export default function CreateSalePage() {
                   placeholder="Buscar productos..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
+<<<<<<< Updated upstream
                   className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+=======
+                  className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900 placeholder-gray-500"
+>>>>>>> Stashed changes
                 />
               </div>
 
@@ -240,7 +244,11 @@ export default function CreateSalePage() {
                     <input
                       type="text"
                       placeholder="Cupón"
+<<<<<<< Updated upstream
                       className="flex-1 px-3 py-2 border border-gray-300 rounded-md text-sm"
+=======
+                      className="flex-1 px-3 py-2 border border-gray-300 rounded-md text-sm text-gray-900 placeholder-gray-500"
+>>>>>>> Stashed changes
                     />
                     <button
                       className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 text-sm font-medium"
@@ -261,14 +269,22 @@ export default function CreateSalePage() {
                         placeholder="Nombre del cliente"
                         value={customerName}
                         onChange={(e) => setCustomerName(e.target.value)}
+<<<<<<< Updated upstream
                         className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
+=======
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm text-gray-900 placeholder-gray-500"
+>>>>>>> Stashed changes
                       />
                       <input
                         type="email"
                         placeholder="Email del cliente (opcional)"
                         value={customerEmail}
                         onChange={(e) => setCustomerEmail(e.target.value)}
+<<<<<<< Updated upstream
                         className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
+=======
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm text-gray-900 placeholder-gray-500"
+>>>>>>> Stashed changes
                       />
                     </div>
 

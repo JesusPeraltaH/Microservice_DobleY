@@ -141,7 +141,11 @@ export default function EditCoupon() {
                                                 id="code"
                                                 value={code}
                                                 onChange={(e) => setCode(e.target.value)}
+<<<<<<< Updated upstream
                                                 className="focus:ring-blue-500 focus:border-blue-500 flex-1 block w-full rounded-md sm:text-sm border-gray-300"
+=======
+                                                className="focus:ring-blue-500 focus:border-blue-500 flex-1 block w-full rounded-md sm:text-sm border-gray-300 text-gray-900 placeholder-gray-500"
+>>>>>>> Stashed changes
                                                 placeholder="EJEMPLO20"
                                                 required
                                             />
@@ -166,7 +170,11 @@ export default function EditCoupon() {
                                                 id="discount"
                                                 value={discount}
                                                 onChange={(e) => setDiscount(e.target.value)}
+<<<<<<< Updated upstream
                                                 className="focus:ring-blue-500 focus:border-blue-500 flex-1 block w-full rounded-md sm:text-sm border-gray-300"
+=======
+                                                className="focus:ring-blue-500 focus:border-blue-500 flex-1 block w-full rounded-md sm:text-sm border-gray-300 text-gray-900 placeholder-gray-500"
+>>>>>>> Stashed changes
                                                 placeholder="20"
                                                 min="1"
                                                 max="100"
@@ -186,7 +194,11 @@ export default function EditCoupon() {
                                                 id="validFrom"
                                                 value={validFrom}
                                                 onChange={(e) => setValidFrom(e.target.value)}
+<<<<<<< Updated upstream
                                                 className="focus:ring-blue-500 focus:border-blue-500 block w-full rounded-md sm:text-sm border-gray-300"
+=======
+                                                className="focus:ring-blue-500 focus:border-blue-500 block w-full rounded-md sm:text-sm border-gray-300 text-gray-900"
+>>>>>>> Stashed changes
                                             />
                                         </div>
                                         <p className="mt-2 text-sm text-gray-500">
@@ -205,7 +217,11 @@ export default function EditCoupon() {
                                                 id="expiryDate"
                                                 value={expiryDate}
                                                 onChange={(e) => setExpiryDate(e.target.value)}
+<<<<<<< Updated upstream
                                                 className="focus:ring-blue-500 focus:border-blue-500 block w-full rounded-md sm:text-sm border-gray-300"
+=======
+                                                className="focus:ring-blue-500 focus:border-blue-500 block w-full rounded-md sm:text-sm border-gray-300 text-gray-900"
+>>>>>>> Stashed changes
                                             />
                                         </div>
                                         <p className="mt-2 text-sm text-gray-500">
@@ -224,7 +240,11 @@ export default function EditCoupon() {
                                                 id="maxUses"
                                                 value={maxUses}
                                                 onChange={(e) => setMaxUses(e.target.value)}
+<<<<<<< Updated upstream
                                                 className="focus:ring-blue-500 focus:border-blue-500 flex-1 block w-full rounded-md sm:text-sm border-gray-300"
+=======
+                                                className="focus:ring-blue-500 focus:border-blue-500 flex-1 block w-full rounded-md sm:text-sm border-gray-300 text-gray-900 placeholder-gray-500"
+>>>>>>> Stashed changes
                                                 placeholder="100"
                                                 min="1"
                                             />

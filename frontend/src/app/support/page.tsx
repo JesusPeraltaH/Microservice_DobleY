@@ -1,3 +1,5 @@
+<<<<<<< Updated upstream
+<<<<<<< Updated upstream
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -303,22 +305,160 @@ export default function SupportTickets() {
               ))}
             </tbody>
           </table>
-        </div>
+=======
+export default function SupportPage() {
+    return (
+        <div className="min-h-screen bg-gray-50">
+            <div className="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
+                <h1 className="text-3xl font-bold text-gray-900">Support Center</h1>
+                <p className="mt-2 text-gray-600">Get help with your orders and account</p>
 
-        {filteredTickets.length === 0 && (
-          <div className="bg-white shadow rounded-lg p-8 text-center mt-6">
-            <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
-            <h3 className="mt-4 text-lg font-medium text-gray-900">No hay tickets</h3>
-            <p className="mt-2 text-sm text-gray-500">
-              {activeTab === 'all' 
-                ? 'No se han creado tickets todavía.' 
-                : `No hay tickets en estado "${activeTab}".`}
-            </p>
-          </div>
-        )}
-      </div>
-    </div>
-  );
+                <div className="mt-8 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
+                    <div className="bg-white overflow-hidden shadow rounded-lg">
+                        <div className="p-5">
+                            <div className="flex items-center">
+                                <div className="flex-shrink-0">
+                                    <svg className="h-6 w-6 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                    </svg>
+                                </div>
+                                <div className="ml-5 w-0 flex-1">
+                                    <dl>
+                                        <dt className="text-sm font-medium text-gray-500 truncate">
+                                            FAQ
+                                        </dt>
+                                        <dd className="text-lg font-medium text-gray-900">
+                                            Common Questions
+                                        </dd>
+                                    </dl>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="bg-white overflow-hidden shadow rounded-lg">
+                        <div className="p-5">
+                            <div className="flex items-center">
+                                <div className="flex-shrink-0">
+                                    <svg className="h-6 w-6 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 4.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                                    </svg>
+                                </div>
+                                <div className="ml-5 w-0 flex-1">
+                                    <dl>
+                                        <dt className="text-sm font-medium text-gray-500 truncate">
+                                            Contact Us
+                                        </dt>
+                                        <dd className="text-lg font-medium text-gray-900">
+                                            Email Support
+                                        </dd>
+                                    </dl>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="bg-white overflow-hidden shadow rounded-lg">
+                        <div className="p-5">
+                            <div className="flex items-center">
+                                <div className="flex-shrink-0">
+                                    <svg className="h-6 w-6 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                    </svg>
+                                </div>
+                                <div className="ml-5 w-0 flex-1">
+                                    <dl>
+                                        <dt className="text-sm font-medium text-gray-500 truncate">
+                                            Live Chat
+                                        </dt>
+                                        <dd className="text-lg font-medium text-gray-900">
+                                            24/7 Support
+                                        </dd>
+                                    </dl>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+>>>>>>> Stashed changes
+=======
+export default function SupportPage() {
+    return (
+        <div className="min-h-screen bg-gray-50">
+            <div className="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
+                <h1 className="text-3xl font-bold text-gray-900">Support Center</h1>
+                <p className="mt-2 text-gray-600">Get help with your orders and account</p>
+
+                <div className="mt-8 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
+                    <div className="bg-white overflow-hidden shadow rounded-lg">
+                        <div className="p-5">
+                            <div className="flex items-center">
+                                <div className="flex-shrink-0">
+                                    <svg className="h-6 w-6 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                    </svg>
+                                </div>
+                                <div className="ml-5 w-0 flex-1">
+                                    <dl>
+                                        <dt className="text-sm font-medium text-gray-500 truncate">
+                                            FAQ
+                                        </dt>
+                                        <dd className="text-lg font-medium text-gray-900">
+                                            Common Questions
+                                        </dd>
+                                    </dl>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="bg-white overflow-hidden shadow rounded-lg">
+                        <div className="p-5">
+                            <div className="flex items-center">
+                                <div className="flex-shrink-0">
+                                    <svg className="h-6 w-6 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 4.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                                    </svg>
+                                </div>
+                                <div className="ml-5 w-0 flex-1">
+                                    <dl>
+                                        <dt className="text-sm font-medium text-gray-500 truncate">
+                                            Contact Us
+                                        </dt>
+                                        <dd className="text-lg font-medium text-gray-900">
+                                            Email Support
+                                        </dd>
+                                    </dl>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="bg-white overflow-hidden shadow rounded-lg">
+                        <div className="p-5">
+                            <div className="flex items-center">
+                                <div className="flex-shrink-0">
+                                    <svg className="h-6 w-6 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                    </svg>
+                                </div>
+                                <div className="ml-5 w-0 flex-1">
+                                    <dl>
+                                        <dt className="text-sm font-medium text-gray-500 truncate">
+                                            Live Chat
+                                        </dt>
+                                        <dd className="text-lg font-medium text-gray-900">
+                                            24/7 Support
+                                        </dd>
+                                    </dl>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+>>>>>>> Stashed changes
+        </div>
+    );
 }

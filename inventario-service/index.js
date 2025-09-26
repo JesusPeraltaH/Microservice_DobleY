@@ -101,11 +101,11 @@ app.patch('/products/:id/stock', async (req, res) => {
     if (!product) {
       return res.status(404).json({ error: 'Producto no encontrado' });
     }
-    
+
     if (product.stock < quantity) {
       return res.status(400).json({ error: 'Stock insuficiente' });
     }
-    
+
     product.stock -= quantity;
     await product.save();
     res.json(product);
