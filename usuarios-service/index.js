@@ -156,6 +156,37 @@ app.post('/login', async (req, res) => {
   }
 });
 
+// Obtener todos los usuarios (para la lista de ventas)
+app.get('/api/users', async (req, res) => {
+  try {
+    const users = await User.find({}, { password: 0 }); // Excluir password
+    res.json(users);
+  } catch (error) {
+    res.status(500).json({ error: 'Error fetching users' });
+  }
+});
+
+// Buscar usuario por email (endpoint adicional si se necesita)
+app.get('/api/users/search', async (req, res) => {
+  try {
+    const { email } = req.query;
+    
+    if (!email) {
+      return res.status(400).json({ error: 'Email parameter is required' });
+    }
+    
+    const user = await User.findOne({ email: email.toLowerCase() }, { password: 0 });
+    
+    if (!user) {
+      return res.status(404).json({ error: 'Usuario no encontrado' });
+    }
+    
+    res.json(user);
+  } catch (error) {
+    res.status(500).json({ error: 'Error searching user' });
+  }
+});
+
 // Verificar token (para el frontend)
 app.post('/verify', authenticateToken, (req, res) => {
   res.json({ valid: true, user: req.user });

@@ -1,85 +1,88 @@
-// src/app/orders/page.tsx
+// src/app/orders/page.tsx (corregido)
 'use client';
-import Link from 'next/link';
+
 import { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
 import Navbar from '@/components/layout/Navbar';
 import { orderService, Order } from '@/services/orderService';
 
 export default function OrdersPage() {
-  const [user, setUser] = useState<any>(null);
   const [orders, setOrders] = useState<Order[]>([]);
+  const [user, setUser] = useState<any>(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
-  const router = useRouter();
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     const userData = localStorage.getItem('user');
-    if (!userData) {
-      router.push('/login');
-      return;
+    if (userData) {
+      setUser(JSON.parse(userData));
     }
-    setUser(JSON.parse(userData));
     fetchOrders();
-  }, [router]);
+  }, []);
 
   const fetchOrders = async () => {
     try {
       setLoading(true);
+      setError(null);
+      console.log('📋 Obteniendo órdenes...');
+      
       const ordersData = await orderService.getOrders();
+      console.log('✅ Órdenes obtenidas:', ordersData.length);
       setOrders(ordersData);
     } catch (error) {
-      console.error('Error fetching orders:', error);
-      setError('Error al cargar las órdenes');
+      console.error('❌ Error obteniendo órdenes:', error);
+      setError('Error al cargar las órdenes. Verifica que el servicio esté funcionando.');
+      // Datos de ejemplo para desarrollo
+      setOrders(getSampleOrders());
     } finally {
       setLoading(false);
     }
   };
 
+  // Datos de ejemplo para desarrollo
+  const getSampleOrders = (): Order[] => {
+    return [
+      {
+        _id: '1',
+        customerName: 'Juan Perez',
+        customerEmail: 'juan@gmail.com',
+        items: [
+          { productName: 'Motorola G60 12GB RAM', quantity: 1, price: 5000, productId: '1' },
+          { productName: 'Cable usb-c 5m', quantity: 1, price: 20, productId: '2' }
+        ],
+        total: 5020,
+        status: 'completed',
+        paymentMethod: 'cash',
+        date: new Date().toISOString()
+      }
+    ];
+  };
+
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('es-ES', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
-    });
-  };
-
-  const getStatusColor = (status: string) => {
-    switch (status.toLowerCase()) {
-      case 'completed':
-      case 'completedp':
-        return 'bg-green-100 text-green-800';
-      case 'pending':
-        return 'bg-yellow-100 text-yellow-800';
-      case 'cancelled':
-        return 'bg-red-100 text-red-800';
-      default:
-        return 'bg-gray-100 text-gray-800';
+    try {
+      return new Date(dateString).toLocaleDateString('es-ES', {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+      });
+    } catch (error) {
+      return 'Fecha inválida';
     }
   };
 
-  const getStatusText = (status: string) => {
-    switch (status.toLowerCase()) {
-      case 'completed':
-      case 'completedp':
-        return 'Completado';
-      case 'pending':
-        return 'Pendiente';
-      case 'cancelled':
-        return 'Cancelado';
-      default:
-        return status;
-    }
+  const getProductSummary = (items: any[]) => {
+    if (items.length === 0) return 'Sin productos';
+    if (items.length === 1) return items[0].productName;
+    return `${items[0].productName} +${items.length - 1} más`;
   };
 
-  if (!user) {
+  if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-          <p className="mt-4 text-gray-600">Cargando...</p>
+          <p className="mt-4 text-gray-600">Cargando órdenes...</p>
         </div>
       </div>
     );
@@ -87,93 +90,102 @@ export default function OrdersPage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <Navbar isAuthenticated={true} userEmail={user.email} showMobileMenu={false} />
-      
+      <Navbar isAuthenticated={!!user} userEmail={user?.email} />
       <div className="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
-        <div className="flex justify-between items-center mb-8">
-          <h1 className="text-2xl font-bold text-gray-900">Órdenes de Compra</h1>
-          <Link 
-            href="/sales/create" 
-            className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 text-sm font-medium flex items-center"
-          >
-            <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-            </svg>
-            Nueva Venta
-          </Link>
+        <div className="mb-6">
+          <h1 className="text-3xl font-bold text-black">Órdenes de Compra</h1>
+          {user && (
+            <p className="text-gray-600">
+              Usuario: <span className="font-medium text-black">{user.email}</span>
+            </p>
+          )}
         </div>
 
         {error && (
-          <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-md text-sm mb-6">
-            {error}
+          <div className="bg-yellow-50 border border-yellow-200 rounded-md p-4 mb-4">
+            <p className="text-yellow-800">{error}</p>
           </div>
         )}
 
-        {loading ? (
-          <div className="bg-white p-6 rounded-lg shadow text-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-            <p className="text-gray-600">Cargando órdenes...</p>
-          </div>
-        ) : orders.length === 0 ? (
-          <div className="bg-white p-6 rounded-lg shadow text-center">
-            <svg className="w-12 h-12 text-gray-400 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
-            </svg>
-            <h3 className="text-lg font-medium text-gray-900 mb-2">No hay órdenes</h3>
-            <p className="text-gray-500">Aún no se han realizado órdenes de compra.</p>
+        {orders.length === 0 ? (
+          <div className="bg-white overflow-hidden shadow rounded-lg">
+            <div className="px-4 py-5 sm:p-6">
+              <div className="text-center">
+                <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                </svg>
+                <h3 className="mt-2 text-sm font-medium text-black">No hay órdenes registradas</h3>
+                <p className="mt-1 text-sm text-gray-500">Todavía no se han realizado órdenes en el sistema.</p>
+                <button
+                  onClick={fetchOrders}
+                  className="mt-4 bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700"
+                >
+                  Reintentar
+                </button>
+              </div>
+            </div>
           </div>
         ) : (
-          <div className="bg-white rounded-lg shadow overflow-hidden">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Cliente</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Productos</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Total</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Estado</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Fecha</th>
-                </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
-                {orders.map((order) => (
-                  <tr key={order._id} className="hover:bg-gray-50">
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      <div>
-                        <div className="font-medium">{order.customerName}</div>
-                        {order.customerEmail && (
-                          <div className="text-gray-500">{order.customerEmail}</div>
-                        )}
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 text-sm text-gray-900">
-                      <div className="space-y-1">
-                        {order.items.map((item, index) => (
-                          <div key={index} className="flex justify-between">
-                            <span>{item.productName}</span>
-                            <span className="text-gray-500">
-                              {item.quantity} x ${item.price}
-                            </span>
-                          </div>
-                        ))}
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                      ${order.total.toFixed(2)}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <span className={`px-2 py-1 text-xs rounded-full ${getStatusColor(order.status)}`}>
-                        {getStatusText(order.status)}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {formatDate(order.date || order.createdAt)}
-                    </td>
+          <div className="bg-white shadow overflow-hidden rounded-lg">
+            <div className="overflow-x-auto">
+              <table className="min-w-full divide-y divide-gray-200">
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-black uppercase tracking-wider">Cliente</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-black uppercase tracking-wider">Productos</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-black uppercase tracking-wider">Total</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-black uppercase tracking-wider">Fecha</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-black uppercase tracking-wider">Estado</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody className="bg-white divide-y divide-gray-200">
+                  {orders.map((order) => (
+                    <tr key={order._id} className="hover:bg-gray-50">
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="text-sm font-medium text-black">{order.customerName}</div>
+                        <div className="text-sm text-gray-500">{order.customerEmail}</div>
+                      </td>
+                      <td className="px-6 py-4">
+                        <div className="text-sm text-black">
+                          {order.items.map((item, index) => (
+                            <div key={index} className="mb-1">
+                              <span className="font-medium">{item.productName}</span>
+                              <span className="text-gray-600 ml-2">x{item.quantity} - ${item.price}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="text-sm font-medium text-black">${order.total.toFixed(2)}</div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="text-sm text-black">{formatDate(order.date)}</div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
+                          order.status === 'completed' 
+                            ? 'bg-green-100 text-green-800'
+                            : 'bg-yellow-100 text-yellow-800'
+                        }`}>
+                          {order.status}
+                        </span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </div>
         )}
+
+        <div className="mt-4 text-center">
+          <button
+            onClick={fetchOrders}
+            className="bg-gray-200 text-gray-700 px-4 py-2 rounded-md hover:bg-gray-300 text-sm"
+          >
+            Actualizar Lista
+          </button>
+        </div>
       </div>
     </div>
   );
