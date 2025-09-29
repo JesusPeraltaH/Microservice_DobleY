@@ -1,48 +1,17 @@
 const supabase = require('../config/supabase');
-const { User, Order } = require('../config/mongodb');
-// RabbitMQ removed - notifications handled by separate microservice
+// Pure Supabase implementation - no MongoDB dependencies
 
 /**
  * Service class for ticket operations
  */
 class TicketService {
-    /**
-     * Validate if user exists in MongoDB
-     * @param {string} idUsuario - MongoDB ObjectId as string
-     * @returns {Promise<object|null>} User object or null if not found
-     */
-    async validateUser(idUsuario) {
-        try {
-            const user = await User.findById(idUsuario).select('_id nombre email');
-            return user;
-        } catch (error) {
-            console.error('❌ Error validating user:', error.message);
-            return null;
-        }
-    }
-
-    /**
-     * Validate if order exists in MongoDB
-     * @param {string} idVenta - MongoDB ObjectId as string (order ID)
-     * @returns {Promise<object|null>} Order object or null if not found
-     */
-    async validateOrder(idVenta) {
-        try {
-            if (!idVenta) return null;
-
-            const order = await Order.findById(idVenta).select('_id customerName customerEmail total status paymentMethod date items');
-            return order;
-        } catch (error) {
-            console.error('❌ Error validating order:', error.message);
-            return null;
-        }
-    }
+    // Pure Supabase implementation - validation removed for simplicity
 
     /**
      * Create a new support ticket
      * @param {object} ticketData - Ticket data
-     * @param {string} ticketData.idUsuario - User ID from MongoDB
-     * @param {string} ticketData.idVenta - Sale ID from MongoDB (optional)
+     * @param {string} ticketData.idUsuario - User ID
+     * @param {string} ticketData.idVenta - Sale ID (optional)
      * @param {string} ticketData.customerName - Customer name (optional)
      * @param {number} ticketData.total - Sale total (optional)
      * @param {string} ticketData.statusVenta - Sale status (optional)
@@ -53,28 +22,13 @@ class TicketService {
     async createTicket(ticketData) {
         const { idUsuario, idVenta, customerName, total, statusVenta, tipo_ticket, descripcion } = ticketData;
 
-        // Validate user exists in MongoDB
-        const user = await this.validateUser(idUsuario);
-        if (!user) {
-            throw new Error(`User with ID ${idUsuario} not found in MongoDB`);
-        }
-
-        // Validate order if provided
-        let order = null;
-        if (idVenta) {
-            order = await this.validateOrder(idVenta);
-            if (!order) {
-                throw new Error(`Order with ID ${idVenta} not found in MongoDB`);
-            }
-        }
-
         // Prepare ticket data for Supabase
         const ticketToCreate = {
             idUsuario,
             idVenta: idVenta || null,
-            customerName: customerName || order?.customerName || user.nombre || null,
-            total: total || order?.total || null,
-            statusVenta: statusVenta || order?.status || null,
+            customerName: customerName || null,
+            total: total || null,
+            statusVenta: statusVenta || null,
             tipo_ticket,
             descripcion,
             estado_ticket: 'abierto',
