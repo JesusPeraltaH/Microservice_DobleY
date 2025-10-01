@@ -2,323 +2,334 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import Navbar from '@/components/layout/Navbar';
-import { supportService, Ticket } from '@/services/supportService';
+import Button from '@/components/ui/Button';
+import Card, { CardHeader, CardContent } from '@/components/ui/Card';
+import { supportAPI, SupportTicket, TicketStats } from '@/lib/api/support';
 
-export default function SupportTickets() {
-  const [tickets, setTickets] = useState<Ticket[]>([]);
-  const [activeTab, setActiveTab] = useState('all');
-  const [showNewTicketForm, setShowNewTicketForm] = useState(false);
-  const [newTicket, setNewTicket] = useState({
-    title: '',
-    description: '',
-    priority: 'Media'
-  });
-  const [user, setUser] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
-  const router = useRouter();
+export default function SupportPage() {
+    const [tickets, setTickets] = useState<SupportTicket[]>([]);
+    const [stats, setStats] = useState<TicketStats | null>(null);
+    const [user, setUser] = useState<any>(null);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState('');
+    const [filter, setFilter] = useState<'all' | 'abierto' | 'en_proceso' | 'resuelto' | 'cerrado'>('all');
+    const router = useRouter();
 
-  useEffect(() => {
-    const userData = localStorage.getItem('user');
-    if (userData) {
-      setUser(JSON.parse(userData));
-    }
-    fetchTickets();
-  }, []);
+    useEffect(() => {
+        // Check authentication
+        const userData = localStorage.getItem('user');
+        if (!userData) {
+            router.push('/login');
+            return;
+        }
+        setUser(JSON.parse(userData));
+        loadData();
+    }, [router, filter]);
 
-  const fetchTickets = async () => {
-    try {
-      setLoading(true);
-      const ticketsData = await supportService.getTickets();
-      setTickets(ticketsData);
-    } catch (error) {
-      console.error('Error fetching tickets:', error);
-      setError('Error al obtener tickets');
-    } finally {
-      setLoading(false);
-    }
-  };
+    const loadData = async () => {
+        try {
+            setLoading(true);
+            const [ticketsData, statsData] = await Promise.all([
+                supportAPI.getTickets(filter === 'all' ? undefined : { estado: filter as any }),
+                supportAPI.getTicketStats()
+            ]);
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'Abierto':
-      case 'Adjetro': // ← ESTADO REAL DE TU BD
-        return 'bg-red-100 text-red-800';
-      case 'En proceso': 
-        return 'bg-yellow-100 text-yellow-800';
-      case 'Resuelto':
-      case 'Cerrado': 
-        return 'bg-green-100 text-green-800';
-      default: 
-        return 'bg-gray-100 text-gray-800';
-    }
-  };
-
-  const getPriorityColor = (priority: string) => {
-    switch (priority) {
-      case 'Alta': return 'text-red-600 font-semibold';
-      case 'Media': return 'text-yellow-600 font-semibold';
-      case 'Baja': return 'text-green-600 font-semibold';
-      default: return 'text-gray-600';
-    }
-  };
-
-  const filteredTickets = activeTab === 'all' 
-    ? tickets 
-    : tickets.filter(ticket => ticket.status === activeTab);
-
-  const getStatusCount = (status: string) => {
-    // Para contar tickets "Abiertos" incluye también "Adjetro"
-    if (status === 'Abierto') {
-      return tickets.filter(ticket => 
-        ticket.status === 'Abierto' || ticket.status === 'Adjetro'
-      ).length;
-    }
-    return tickets.filter(ticket => ticket.status === status).length;
-  };
-
-  const handleCreateTicket = async (e: React.FormEvent) => {
-  e.preventDefault();
-  
-  try {
-    const ticketData = {
-      title: newTicket.title,
-      description: newTicket.description,
-      priority: newTicket.priority,
-      customer: user?.email || "Usuario Actual",
-      status: 'Abierto' // ← CAMBIAR A "Abierto" que es válido
+            setTickets(ticketsData.tickets);
+            setStats(statsData);
+        } catch (err: any) {
+            setError(err.message || 'Failed to load support tickets');
+        } finally {
+            setLoading(false);
+        }
     };
 
-    const createdTicket = await supportService.createTicket(ticketData);
-    
-    if (createdTicket) {
-      fetchTickets();
-      setNewTicket({ title: '', description: '', priority: 'Media' });
-      setShowNewTicketForm(false);
-      alert('Ticket creado con éxito!');
-    } else {
-      alert('Error al crear el ticket');
-    }
-  } catch (error) {
-    console.error('Error:', error);
-    alert('Error al crear el ticket');
-  }
-};
+    const formatDate = (dateString: string) => {
+        return new Date(dateString).toLocaleDateString('es-ES', {
+            year: 'numeric',
+            month: 'short',
+            day: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit'
+        });
+    };
 
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-          <p className="mt-4 text-gray-600">Cargando tickets...</p>
-        </div>
-      </div>
-    );
-  }
+    const getStatusColor = (status: string) => {
+        switch (status) {
+            case 'abierto':
+                return 'bg-red-100 text-red-800';
+            case 'en_proceso':
+                return 'bg-yellow-100 text-yellow-800';
+            case 'resuelto':
+                return 'bg-green-100 text-green-800';
+            case 'cerrado':
+                return 'bg-gray-100 text-gray-800';
+            default:
+                return 'bg-gray-100 text-gray-800';
+        }
+    };
 
-  return (
-    <div className="min-h-screen bg-gray-50">
-      <Navbar isAuthenticated={!!user} userEmail={user?.email} />
-      <div className="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
-        <div className="mb-6">
-          <h1 className="text-3xl font-bold text-gray-900">Tickets de Soporte</h1>
-          {user && (
-            <p className="text-gray-600">
-              Usuario: <span className="font-medium">{user.email}</span>
-            </p>
-          )}
-        </div>
+    const getStatusLabel = (status: string) => {
+        switch (status) {
+            case 'abierto':
+                return 'Abierto';
+            case 'en_proceso':
+                return 'En Proceso';
+            case 'resuelto':
+                return 'Resuelto';
+            case 'cerrado':
+                return 'Cerrado';
+            default:
+                return status;
+        }
+    };
 
-        {error && (
-          <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-md text-sm mb-6">
-            {error}
-          </div>
-        )}
+    const getTypeLabel = (type: string) => {
+        switch (type) {
+            case 'queja':
+                return 'Queja';
+            case 'devolucion':
+                return 'Devolución';
+            case 'problema':
+                return 'Problema';
+            default:
+                return type;
+        }
+    };
 
-        <div className="flex justify-between items-center mb-6">
-          <div>
-            <p className="text-gray-600">Gestiona las solicitudes de soporte de tus clientes</p>
-          </div>
-          <button 
-            onClick={() => setShowNewTicketForm(true)}
-            className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 flex items-center"
-          >
-            <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-            </svg>
-            Nuevo Ticket
-          </button>
-        </div>
+    const getTypeIcon = (type: string) => {
+        switch (type) {
+            case 'queja':
+                return '😠';
+            case 'devolucion':
+                return '↩️';
+            case 'problema':
+                return '⚠️';
+            default:
+                return '🎫';
+        }
+    };
 
-        {/* Filtros */}
-        <div className="mb-6 bg-white p-4 rounded-lg shadow">
-          <div className="hidden sm:block">
-            <nav className="flex space-x-4">
-              <button
-                onClick={() => setActiveTab('all')}
-                className={`px-3 py-2 font-medium text-sm rounded-md ${
-                  activeTab === 'all'
-                    ? 'bg-blue-100 text-blue-700'
-                    : 'text-gray-500 hover:text-gray-700'
-                }`}
-              >
-                Todos ({tickets.length})
-              </button>
-              <button
-                onClick={() => setActiveTab('Abierto')}
-                className={`px-3 py-2 font-medium text-sm rounded-md ${
-                  activeTab === 'Abierto'
-                    ? 'bg-red-100 text-red-700'
-                    : 'text-gray-500 hover:text-gray-700'
-                }`}
-              >
-                Abiertos ({getStatusCount('Abierto')})
-              </button>
-              <button
-                onClick={() => setActiveTab('En proceso')}
-                className={`px-3 py-2 font-medium text-sm rounded-md ${
-                  activeTab === 'En proceso'
-                    ? 'bg-yellow-100 text-yellow-700'
-                    : 'text-gray-500 hover:text-gray-700'
-                }`}
-              >
-                En proceso ({getStatusCount('En proceso')})
-              </button>
-              <button
-                onClick={() => setActiveTab('Cerrado')}
-                className={`px-3 py-2 font-medium text-sm rounded-md ${
-                  activeTab === 'Cerrado'
-                    ? 'bg-green-100 text-green-700'
-                    : 'text-gray-500 hover:text-gray-700'
-                }`}
-              >
-                Cerrados ({getStatusCount('Cerrado') + getStatusCount('Resuelto')})
-              </button>
-            </nav>
-          </div>
-        </div>
-
-        {/* Modal de Nuevo Ticket */}
-        {showNewTicketForm && (
-          <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
-            <div className="relative top-20 mx-auto p-5 border w-11/12 md:w-1/2 lg:w-1/3 shadow-lg rounded-md bg-white">
-              <div className="mt-3">
-                <h3 className="text-lg font-medium text-gray-900 mb-4">Crear Nuevo Ticket</h3>
-                
-                <form onSubmit={handleCreateTicket}>
-                  <div className="mb-4">
-                    <label className="block text-sm font-medium text-gray-700">Asunto *</label>
-                    <input
-                      type="text"
-                      value={newTicket.title}
-                      onChange={(e) => setNewTicket({...newTicket, title: e.target.value})}
-                      className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
-                      placeholder="Describe el problema..."
-                      required
-                    />
-                  </div>
-
-                  <div className="mb-4">
-                    <label className="block text-sm font-medium text-gray-700">Descripción</label>
-                    <textarea
-                      value={newTicket.description}
-                      onChange={(e) => setNewTicket({...newTicket, description: e.target.value})}
-                      rows={4}
-                      className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
-                      placeholder="Proporciona detalles adicionales..."
-                    />
-                  </div>
-
-                  <div className="mb-4">
-                    <label className="block text-sm font-medium text-gray-700">Prioridad *</label>
-                    <select
-                      value={newTicket.priority}
-                      onChange={(e) => setNewTicket({...newTicket, priority: e.target.value})}
-                      className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
-                      required
-                    >
-                      <option value="Alta">Alta</option>
-                      <option value="Media">Media</option>
-                      <option value="Baja">Baja</option>
-                    </select>
-                  </div>
-
-                  <div className="flex justify-end space-x-3 mt-6">
-                    <button
-                      type="button"
-                      onClick={() => setShowNewTicketForm(false)}
-                      className="px-4 py-2 bg-gray-300 text-gray-700 rounded-md hover:bg-gray-400"
-                    >
-                      Cancelar
-                    </button>
-                    <button
-                      type="submit"
-                      className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
-                    >
-                      Crear Ticket
-                    </button>
-                  </div>
-                </form>
-              </div>
+    if (!user) {
+        return (
+            <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+                <div className="text-center">
+                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
+                    <p className="mt-4 text-gray-600">Cargando...</p>
+                </div>
             </div>
-          </div>
-        )}
+        );
+    }
 
-        {/* Lista de tickets */}
-        <div className="bg-white shadow overflow-hidden rounded-lg">
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
-              <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Asunto</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Cliente</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Prioridad</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Estado</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Creación</th>
-              </tr>
-            </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
-              {filteredTickets.map((ticket) => (
-                <tr key={ticket._id} className="hover:bg-gray-50">
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                    {ticket.title}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                    {ticket.customer}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                    <span className={getPriorityColor(ticket.priority)}>
-                      {ticket.priority}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${getStatusColor(ticket.status)}`}>
-                      {ticket.status}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                    {new Date(ticket.createdAt).toLocaleDateString('es-ES')}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+    return (
+        <div className="min-h-screen bg-gray-50">
+            <Navbar isAuthenticated={true} userEmail={user.email} />
+
+            <div className="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
+                <div className="mb-8">
+                    <div className="flex justify-between items-center">
+                        <div>
+                            <h1 className="text-2xl font-bold text-gray-900">Centro de Soporte</h1>
+                            <p className="text-gray-600">Gestiona tus tickets de soporte y obtén ayuda</p>
+                        </div>
+                        <Link href="/support/create">
+                            <Button>Crear Ticket</Button>
+                        </Link>
+                    </div>
+                </div>
+
+                {/* Stats Cards */}
+                {stats && (
+                    <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+                        <Card>
+                            <CardContent className="p-6">
+                                <div className="flex items-center">
+                                    <div className="flex-shrink-0">
+                                        <div className="w-8 h-8 bg-blue-500 rounded-lg flex items-center justify-center">
+                                            <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 5v2m0 4v2m0 4v2M5 5a2 2 0 00-2 2v3a2 2 0 110 4v3a2 2 0 002 2h14a2 2 0 002-2v-3a2 2 0 110-4V7a2 2 0 00-2-2H5z" />
+                                            </svg>
+                                        </div>
+                                    </div>
+                                    <div className="ml-4">
+                                        <p className="text-sm font-medium text-gray-600">Total Tickets</p>
+                                        <p className="text-2xl font-bold text-gray-900">{stats.total}</p>
+                                    </div>
+                                </div>
+                            </CardContent>
+                        </Card>
+
+                        <Card>
+                            <CardContent className="p-6">
+                                <div className="flex items-center">
+                                    <div className="flex-shrink-0">
+                                        <div className="w-8 h-8 bg-red-500 rounded-lg flex items-center justify-center">
+                                            <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
+                                            </svg>
+                                        </div>
+                                    </div>
+                                    <div className="ml-4">
+                                        <p className="text-sm font-medium text-gray-600">Abiertos</p>
+                                        <p className="text-2xl font-bold text-gray-900">{stats.byStatus.abierto}</p>
+                                    </div>
+                                </div>
+                            </CardContent>
+                        </Card>
+
+                        <Card>
+                            <CardContent className="p-6">
+                                <div className="flex items-center">
+                                    <div className="flex-shrink-0">
+                                        <div className="w-8 h-8 bg-yellow-500 rounded-lg flex items-center justify-center">
+                                            <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                            </svg>
+                                        </div>
+                                    </div>
+                                    <div className="ml-4">
+                                        <p className="text-sm font-medium text-gray-600">En Proceso</p>
+                                        <p className="text-2xl font-bold text-gray-900">{stats.byStatus.en_proceso}</p>
+                                    </div>
+                                </div>
+                            </CardContent>
+                        </Card>
+
+                        <Card>
+                            <CardContent className="p-6">
+                                <div className="flex items-center">
+                                    <div className="flex-shrink-0">
+                                        <div className="w-8 h-8 bg-green-500 rounded-lg flex items-center justify-center">
+                                            <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                            </svg>
+                                        </div>
+                                    </div>
+                                    <div className="ml-4">
+                                        <p className="text-sm font-medium text-gray-600">Resueltos</p>
+                                        <p className="text-2xl font-bold text-gray-900">{stats.byStatus.resuelto}</p>
+                                    </div>
+                                </div>
+                            </CardContent>
+                        </Card>
+                    </div>
+                )}
+
+                {/* Filters */}
+                <div className="mb-6">
+                    <div className="flex space-x-4">
+                        <button
+                            onClick={() => setFilter('all')}
+                            className={`px-4 py-2 text-sm font-medium rounded-md ${filter === 'all'
+                                    ? 'bg-blue-100 text-blue-700'
+                                    : 'text-gray-500 hover:text-gray-700'
+                                }`}
+                        >
+                            Todos
+                        </button>
+                        <button
+                            onClick={() => setFilter('abierto')}
+                            className={`px-4 py-2 text-sm font-medium rounded-md ${filter === 'abierto'
+                                    ? 'bg-blue-100 text-blue-700'
+                                    : 'text-gray-500 hover:text-gray-700'
+                                }`}
+                        >
+                            Abiertos
+                        </button>
+                        <button
+                            onClick={() => setFilter('en_proceso')}
+                            className={`px-4 py-2 text-sm font-medium rounded-md ${filter === 'en_proceso'
+                                    ? 'bg-blue-100 text-blue-700'
+                                    : 'text-gray-500 hover:text-gray-700'
+                                }`}
+                        >
+                            En Proceso
+                        </button>
+                        <button
+                            onClick={() => setFilter('resuelto')}
+                            className={`px-4 py-2 text-sm font-medium rounded-md ${filter === 'resuelto'
+                                    ? 'bg-blue-100 text-blue-700'
+                                    : 'text-gray-500 hover:text-gray-700'
+                                }`}
+                        >
+                            Resueltos
+                        </button>
+                    </div>
+                </div>
+
+                {/* Tickets List */}
+                {loading ? (
+                    <div className="text-center py-12">
+                        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
+                        <p className="mt-4 text-gray-600">Cargando tickets...</p>
+                    </div>
+                ) : error ? (
+                    <div className="text-center py-12">
+                        <div className="text-red-600 mb-4">Error: {error}</div>
+                        <Button onClick={loadData}>Reintentar</Button>
+                    </div>
+                ) : tickets.length === 0 ? (
+                    <Card>
+                        <CardContent className="text-center py-12">
+                            <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 5v2m0 4v2m0 4v2M5 5a2 2 0 00-2 2v3a2 2 0 110 4v3a2 2 0 002 2h14a2 2 0 002-2v-3a2 2 0 110-4V7a2 2 0 00-2-2H5z" />
+                            </svg>
+                            <h3 className="mt-2 text-sm font-medium text-gray-900">No hay tickets</h3>
+                            <p className="mt-1 text-sm text-gray-500">Comienza creando tu primer ticket de soporte.</p>
+                            <div className="mt-6">
+                                <Link href="/support/create">
+                                    <Button>Crear Ticket</Button>
+                                </Link>
+                            </div>
+                        </CardContent>
+                    </Card>
+                ) : (
+                    <div className="space-y-4">
+                        {tickets.map((ticket) => (
+                            <Card key={ticket.idTicket}>
+                                <CardContent className="p-6">
+                                    <div className="flex items-start justify-between">
+                                        <div className="flex-1">
+                                            <div className="flex items-center space-x-3 mb-2">
+                                                <span className="text-lg">{getTypeIcon(ticket.tipo_ticket)}</span>
+                                                <h3 className="text-lg font-medium text-gray-900">
+                                                    {getTypeLabel(ticket.tipo_ticket)}
+                                                </h3>
+                                                <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(ticket.estado_ticket)}`}>
+                                                    {getStatusLabel(ticket.estado_ticket)}
+                                                </span>
+                                            </div>
+
+                                            <p className="text-gray-600 mb-3 line-clamp-2">
+                                                {ticket.descripcion}
+                                            </p>
+
+                                            <div className="flex items-center space-x-4 text-sm text-gray-500">
+                                                <span>Creado: {formatDate(ticket.fechaCreacion)}</span>
+                                                {ticket.customerName && (
+                                                    <span>Cliente: {ticket.customerName}</span>
+                                                )}
+                                                {ticket.total && (
+                                                    <span>Total: ${ticket.total}</span>
+                                                )}
+                                            </div>
+                                        </div>
+
+                                        <div className="ml-4">
+                                            <Link href={`/support/${ticket.idTicket}`}>
+                                                <Button variant="outline" size="sm">
+                                                    Ver Detalles
+                                                </Button>
+                                            </Link>
+                                        </div>
+                                    </div>
+                                </CardContent>
+                            </Card>
+                        ))}
+                    </div>
+                )}
+            </div>
         </div>
-
-        {filteredTickets.length === 0 && (
-          <div className="bg-white shadow rounded-lg p-8 text-center mt-6">
-            <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
-            <h3 className="mt-4 text-lg font-medium text-gray-900">No hay tickets</h3>
-            <p className="mt-2 text-sm text-gray-500">
-              {activeTab === 'all' 
-                ? 'No se han creado tickets todavía.' 
-                : `No hay tickets en estado "${activeTab}".`}
-            </p>
-          </div>
-        )}
-      </div>
-    </div>
-  );
+    );
 }
