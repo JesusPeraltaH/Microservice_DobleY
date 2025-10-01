@@ -50,12 +50,19 @@ export default function OrdersPage() {
           { productName: 'Cable usb-c 5m', quantity: 1, price: 20, productId: '2' }
         ],
         total: 5020,
+        totalAfterDiscount: 5020,
+        discountApplied: 0,
+        couponCode: null,
+        couponId: null,
+        couponDiscount: null,
         status: 'completed',
         paymentMethod: 'cash',
-        date: new Date().toISOString()
+        date: new Date().toISOString(),
+        createdAt: new Date().toISOString()
       }
     ];
   };
+  
 
   const formatDate = (dateString: string) => {
     try {
@@ -129,50 +136,61 @@ export default function OrdersPage() {
           <div className="bg-white shadow overflow-hidden rounded-lg">
             <div className="overflow-x-auto">
               <table className="min-w-full divide-y divide-gray-200">
-                <thead className="bg-gray-50">
-                  <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-black uppercase tracking-wider">Cliente</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-black uppercase tracking-wider">Productos</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-black uppercase tracking-wider">Total</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-black uppercase tracking-wider">Fecha</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-black uppercase tracking-wider">Estado</th>
-                  </tr>
-                </thead>
-                <tbody className="bg-white divide-y divide-gray-200">
-                  {orders.map((order) => (
-                    <tr key={order._id} className="hover:bg-gray-50">
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm font-medium text-black">{order.customerName}</div>
-                        <div className="text-sm text-gray-500">{order.customerEmail}</div>
-                      </td>
-                      <td className="px-6 py-4">
-                        <div className="text-sm text-black">
-                          {order.items.map((item, index) => (
-                            <div key={index} className="mb-1">
-                              <span className="font-medium">{item.productName}</span>
-                              <span className="text-gray-600 ml-2">x{item.quantity} - ${item.price}</span>
-                            </div>
-                          ))}
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm font-medium text-black">${order.total.toFixed(2)}</div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm text-black">{formatDate(order.date)}</div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                          order.status === 'completed' 
-                            ? 'bg-green-100 text-green-800'
-                            : 'bg-yellow-100 text-yellow-800'
-                        }`}>
-                          {order.status}
-                        </span>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
+              <thead className="bg-gray-50">
+  <tr>
+    <th className="px-6 py-3 text-left text-xs font-medium text-black uppercase tracking-wider">Cliente</th>
+    <th className="px-6 py-3 text-left text-xs font-medium text-black uppercase tracking-wider">Productos</th>
+    <th className="px-6 py-3 text-left text-xs font-medium text-black uppercase tracking-wider">Total</th>
+    <th className="px-6 py-3 text-left text-xs font-medium text-black uppercase tracking-wider">Cupón</th>
+    <th className="px-6 py-3 text-left text-xs font-medium text-black uppercase tracking-wider">Descuento</th>
+    <th className="px-6 py-3 text-left text-xs font-medium text-black uppercase tracking-wider">Fecha</th>
+    <th className="px-6 py-3 text-left text-xs font-medium text-black uppercase tracking-wider">Estado</th>
+  </tr>
+</thead>
+<tbody className="bg-white divide-y divide-gray-200">
+  {orders.map((order) => (
+    <tr key={order._id} className="hover:bg-gray-50">
+      <td className="px-6 py-4 whitespace-nowrap">
+        <div className="text-sm font-medium text-black">{order.customerName}</div>
+        <div className="text-sm text-gray-500">{order.customerEmail}</div>
+      </td>
+      <td className="px-6 py-4">
+        <div className="text-sm text-black">
+          {order.items.map((item, index) => (
+            <div key={index} className="mb-1">
+              <span className="font-medium">{item.productName}</span>
+              <span className="text-gray-600 ml-2">x{item.quantity} - ${item.price}</span>
+            </div>
+          ))}
+        </div>
+      </td>
+      <td className="px-6 py-4 whitespace-nowrap">
+        <div className="text-sm font-medium text-black">${order.total.toFixed(2)}</div>
+      </td>
+      <td className="px-6 py-4 whitespace-nowrap">
+        <div className="text-sm text-black">{order.couponCode || '—'}</div>
+      </td>
+      <td className="px-6 py-4 whitespace-nowrap">
+        <div className="text-sm text-black">
+          {order.couponDiscount != null ? `${order.couponDiscount}%` : '—'}
+        </div>
+      </td>
+      <td className="px-6 py-4 whitespace-nowrap">
+        <div className="text-sm text-black">{formatDate(order.date)}</div>
+      </td>
+      <td className="px-6 py-4 whitespace-nowrap">
+        <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
+          order.status === 'completed' 
+            ? 'bg-green-100 text-green-800'
+            : 'bg-yellow-100 text-yellow-800'
+        }`}>
+          {order.status}
+        </span>
+      </td>
+    </tr>
+  ))}
+</tbody>
+
               </table>
             </div>
           </div>

@@ -15,6 +15,11 @@ export interface Order {
   items: OrderItem[];
   total: number;
   status: string;
+  totalAfterDiscount?: number;
+  discountApplied?: number;
+  couponCode?: string | null;
+  couponId?: string | null;
+  couponDiscount?: number | null;
   paymentMethod: string;
   date: string;
   createdAt?: string;

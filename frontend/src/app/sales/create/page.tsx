@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import Navbar from '@/components/layout/Navbar';
 import { inventoryService, Product } from '@/services/inventoryService';
 import { orderService } from '@/services/orderService';
+import { MICROSERVICES } from '@/config/microservices';
 
 interface CartItem {
   product: Product;
@@ -33,6 +34,9 @@ export default function CreateSalePage() {
   const [userSearchTerm, setUserSearchTerm] = useState('');
   const [usersLoading, setUsersLoading] = useState(true);
   const [couponCode, setCouponCode] = useState('');
+  const [appliedCoupon, setAppliedCoupon] = useState<any>(null);
+  const [couponError, setCouponError] = useState('');
+  const [couponLoading, setCouponLoading] = useState(false);
   const router = useRouter();
 
   useEffect(() => {
@@ -167,18 +171,75 @@ export default function CreateSalePage() {
     return cart.reduce((total, item) => total + (item.product.price * item.quantity), 0);
   };
 
+  const getDiscountAmount = () => {
+    if (!appliedCoupon) return 0;
+    const subtotal = getTotal();
+    return (subtotal * appliedCoupon.discount) / 100;
+  };
+
+  const getFinalTotal = () => {
+    const subtotal = getTotal();
+    const discount = getDiscountAmount();
+    return Math.max(0, subtotal - discount);
+  };
+
   const handleUserSelect = (userEmail: string, userName: string) => {
     setCustomerEmail(userEmail);
     setCustomerName(userName);
     setUserSearchTerm(userEmail);
   };
 
-  const handleApplyCoupon = () => {
-    if (couponCode.trim()) {
-      alert(`Cupón "${couponCode}" aplicado (funcionalidad en desarrollo)`);
-    } else {
-      alert('Por favor ingresa un código de cupón');
+  const handleApplyCoupon = async () => {
+    if (!couponCode.trim()) {
+      setCouponError('Por favor ingresa un código de cupón');
+      return;
     }
+
+    setCouponLoading(true);
+    setCouponError('');
+
+    try {
+      // First validate the coupon
+      const validateResponse = await fetch(`${MICROSERVICES.COUPONS}/api/coupons/validate/${couponCode.toUpperCase()}`);
+      const validateResult = await validateResponse.json();
+
+      if (!validateResult.valid) {
+        setCouponError(validateResult.message || 'Cupón no válido');
+        return;
+      }
+
+      // If validation passes, apply the coupon (increment usage count)
+      const applyResponse = await fetch(`${MICROSERVICES.COUPONS}/api/coupons/apply/${couponCode.toUpperCase()}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        }
+      });
+
+      const applyResult = await applyResponse.json();
+
+      if (applyResult.success) {
+        setAppliedCoupon({
+          code: validateResult.coupon.code,
+          discount: validateResult.coupon.discount,
+          id: validateResult.coupon._id || validateResult.coupon.id
+        });
+        setCouponCode('');
+        setCouponError('');
+      } else {
+        setCouponError(applyResult.message || 'Error al aplicar el cupón');
+      }
+    } catch (error) {
+      console.error('Error applying coupon:', error);
+      setCouponError('Error de conexión al aplicar el cupón');
+    } finally {
+      setCouponLoading(false);
+    }
+  };
+
+  const handleRemoveCoupon = () => {
+    setAppliedCoupon(null);
+    setCouponError('');
   };
 
   // 🔥 NUEVA FUNCIÓN: Actualizar inventario
@@ -240,6 +301,11 @@ export default function CreateSalePage() {
         price: item.product.price
       })),
       total: getTotal(),
+      totalAfterDiscount: getFinalTotal(),
+      discountApplied: getDiscountAmount(),
+      couponCode: appliedCoupon?.code || null,
+      couponId: appliedCoupon?.couponId || null,
+      couponDiscount: appliedCoupon?.discount || null,
       status: 'completed',
       paymentMethod: 'cash',
       date: new Date().toISOString()
@@ -262,6 +328,8 @@ export default function CreateSalePage() {
     setCustomerEmail('');
     setUserSearchTerm('');
     setCouponCode('');
+    setAppliedCoupon(null);
+    setCouponError('');
     
     // Recargar productos para mostrar stock actualizado
     await fetchProducts();
@@ -475,27 +543,81 @@ export default function CreateSalePage() {
                   </div>
 
                   {/* Cupón */}
-                  <div className="flex items-center space-x-2 mb-4">
-                    <input
-                      type="text"
-                      placeholder="Código de cupón"
-                      value={couponCode}
-                      onChange={(e) => setCouponCode(e.target.value)}
-                      className="flex-1 px-3 py-2 border border-gray-300 rounded-md text-sm text-black"
-                    />
-                    <button
-                      onClick={handleApplyCoupon}
-                      className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 text-sm font-medium"
-                    >
-                      Aplicar
-                    </button>
+                  <div className="mb-4">
+                    {appliedCoupon ? (
+                      <div className="bg-green-50 border border-green-200 rounded-md p-3 mb-3">
+                        <div className="flex justify-between items-center">
+                          <div>
+                            <p className="text-sm font-medium text-green-800">
+                              ✅ Cupón aplicado: {appliedCoupon.code}
+                            </p>
+                            <p className="text-sm text-green-700">
+                              Descuento: {appliedCoupon.discount}%
+                            </p>
+                          </div>
+                          <button
+                            onClick={handleRemoveCoupon}
+                            className="text-red-600 hover:text-red-800 text-sm"
+                          >
+                            Remover
+                          </button>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="flex items-center space-x-2">
+                        <input
+                          type="text"
+                          placeholder="Código de cupón"
+                          value={couponCode}
+                          onChange={(e) => setCouponCode(e.target.value)}
+                          onKeyPress={(e) => e.key === 'Enter' && handleApplyCoupon()}
+                          disabled={couponLoading}
+                          className="flex-1 px-3 py-2 border border-gray-300 rounded-md text-sm text-black disabled:opacity-50"
+                        />
+                        <button
+                          onClick={handleApplyCoupon}
+                          disabled={couponLoading || !couponCode.trim()}
+                          className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 text-sm font-medium disabled:opacity-50"
+                        >
+                          {couponLoading ? 'Aplicando...' : 'Aplicar'}
+                        </button>
+                      </div>
+                    )}
+                    
+                    {couponError && (
+                      <div className="mt-2 bg-red-50 border border-red-200 rounded-md p-2">
+                        <p className="text-sm text-red-600">{couponError}</p>
+                      </div>
+                    )}
                   </div>
 
                   <div className="space-y-3 border-t pt-4">
-                    <div className="flex justify-between font-semibold text-lg">
-                      <span className="text-black">Total:</span>
-                      <span className="text-black">${getTotal().toFixed(2)}</span>
+                    <div className="flex justify-between text-sm">
+                      <span className="text-gray-600">Subtotal:</span>
+                      <span className="text-gray-600">${getTotal().toFixed(2)}</span>
                     </div>
+                    
+                    {appliedCoupon && (
+                      <>
+                        <div className="flex justify-between text-sm text-green-600">
+                          <span>Descuento ({appliedCoupon.discount}%):</span>
+                          <span>-${getDiscountAmount().toFixed(2)}</span>
+                        </div>
+                        <div className="border-t pt-2">
+                          <div className="flex justify-between font-semibold text-lg">
+                            <span className="text-black">Total:</span>
+                            <span className="text-black">${getFinalTotal().toFixed(2)}</span>
+                          </div>
+                        </div>
+                      </>
+                    )}
+                    
+                    {!appliedCoupon && (
+                      <div className="flex justify-between font-semibold text-lg">
+                        <span className="text-black">Total:</span>
+                        <span className="text-black">${getTotal().toFixed(2)}</span>
+                      </div>
+                    )}
 
                     {customerName && (
                       <div className="bg-green-50 border border-green-200 rounded-md p-3">
