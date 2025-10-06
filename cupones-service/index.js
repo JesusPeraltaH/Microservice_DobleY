@@ -4,6 +4,7 @@ require('dotenv').config();
 
 const couponRoutes = require('./src/routes/couponRoutes');
 const errorHandler = require('./src/middleware/errorHandler');
+const { connectRabbitMQ, publishEvent, consumeEvents } = require('./src/rabbitmq');
 
 const app = express();
 const PORT = process.env.PORT || 3004;
@@ -36,9 +37,22 @@ app.use((req, res) => {
   });
 });
 
-
 app.listen(PORT, () => {
-  console.log(`🎟️  Coupons Service running on port ${PORT}`);
-  console.log(`📊 Health check: http://localhost:${PORT}/health`);
-  console.log(`🔗 API Base URL: http://localhost:${PORT}/api/coupons`);
+  console.log(`  Coupons Service running on port ${PORT}`);
+  console.log(`  Health check: http://localhost:${PORT}/health`);
+  console.log(`   API Base URL: http://localhost:${PORT}/api/coupons`);
 });
+
+// Initialize RabbitMQ on startup
+(async () => {
+  try {
+    await connectRabbitMQ();
+    await publishEvent('micro.events', 'coupons.started', { service: 'cupones-service', timestamp: new Date().toISOString() });
+    // Example consumer that logs all events
+    await consumeEvents('micro.events', 'coupons.logs', '#', async (data, fields) => {
+      console.log(`[coupons] event received: ${fields.routingKey}`, data);
+    });
+  } catch (err) {
+    console.error('RabbitMQ init error:', err.message);
+  }
+})();

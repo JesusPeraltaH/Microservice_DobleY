@@ -2,6 +2,7 @@ const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
 require('dotenv').config();
+const { connectRabbitMQ, publishEvent } = require('./src/rabbitmq');
 
 const app = express();
 const PORT = process.env.PORT || 3102;
@@ -92,10 +93,21 @@ app.get('/orders/:id', async (req, res) => {
     }
     res.json(order);
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    console.error('Error obteniendo orden:', error);
+    res.status(500).json({ error: 'Error interno del servidor' });
   }
 });
 
 app.listen(PORT, () => {
   console.log(`Servicio de carrito ejecutándose en puerto ${PORT}`);
 });
+
+// Initialize RabbitMQ on startup
+(async () => {
+  try {
+    await connectRabbitMQ();
+    await publishEvent('micro.events', 'cart.started', { service: 'carrito-service', timestamp: new Date().toISOString() });
+  } catch (err) {
+    console.error('RabbitMQ init error:', err.message);
+  }
+})();

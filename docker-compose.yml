@@ -1,0 +1,153 @@
+version: "3.9"
+
+services:
+  mongo:
+    image: mongo:6
+    container_name: mongo
+    restart: unless-stopped
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo_data:/data/db
+    networks:
+      - internal_net
+
+  rabbitmq:
+    image: rabbitmq:3-management
+    container_name: rabbitmq
+    restart: unless-stopped
+    environment:
+      - RABBITMQ_DEFAULT_USER=admin
+      - RABBITMQ_DEFAULT_PASS=admin
+    ports:
+      - "5672:5672" # AMQP
+      - "15672:15672" # Management UI
+    networks:
+      - internal_net
+
+  users-service:
+    build: ./usuarios-service
+    container_name: users-service
+    restart: unless-stopped
+    env_file:
+      - ./usuarios-service/.env
+    environment:
+      # Force internal Mongo for containers
+      - MONGODB_URI=mongodb://mongo:27017/usuarios
+      - PORT=3003
+      - RABBITMQ_URL=amqp://admin:admin@rabbitmq:5672
+    depends_on:
+      - mongo
+      - rabbitmq
+    networks:
+      - internal_net
+
+  sales-service:
+    build: ./orders-service
+    container_name: sales-service
+    restart: unless-stopped
+    env_file:
+      - ./orders-service/.env
+    environment:
+      - MONGODB_URI=mongodb://mongo:27017/sales
+      - PORT=3004
+      - RABBITMQ_URL=amqp://admin:admin@rabbitmq:5672
+    depends_on:
+      - mongo
+      - rabbitmq
+    networks:
+      - internal_net
+
+  tickets-service:
+    build: ./soporte-service
+    container_name: tickets-service
+    restart: unless-stopped
+    env_file:
+      - ./soporte-service/.env
+    environment:
+      # Ensure both variable names are available
+      - SUPABASE_URL=${SUPABASE_URL}
+      - SUPABASE_KEY=${SUPABASE_KEY:-${SUPABASE_SERVICE_ROLE_KEY}}
+      - SUPABASE_SERVICE_ROLE_KEY=${SUPABASE_SERVICE_ROLE_KEY:-${SUPABASE_KEY}}
+      - PORT=3005
+      - RABBITMQ_URL=amqp://admin:admin@rabbitmq:5672
+    depends_on:
+      - rabbitmq
+    networks:
+      - internal_net
+
+  inventario-service:
+    build: ./inventario-service
+    container_name: inventario-service
+    restart: unless-stopped
+    env_file:
+      - ./inventario-service/.env
+    environment:
+      - MONGODB_URI=mongodb://mongo:27017/inventario
+      - PORT=3001
+      - RABBITMQ_URL=amqp://admin:admin@rabbitmq:5672
+    depends_on:
+      - mongo
+      - rabbitmq
+    networks:
+      - internal_net
+
+  carrito-service:
+    build: ./carrito-service
+    container_name: carrito-service
+    restart: unless-stopped
+    env_file:
+      - ./carrito-service/.env
+    environment:
+      - MONGODB_URI=mongodb://mongo:27017/carrito
+      - INVENTORY_SERVICE_URL=http://inventario-service:3001
+      - PORT=3102
+      - RABBITMQ_URL=amqp://admin:admin@rabbitmq:5672
+    depends_on:
+      - mongo
+      - inventario-service
+      - rabbitmq
+    networks:
+      - internal_net
+
+  cupones-service:
+    build: ./cupones-service
+    container_name: cupones-service
+    restart: unless-stopped
+    env_file:
+      - ./cupones-service/.env
+    environment:
+      - PORT=3004
+      - SUPABASE_URL=${SUPABASE_URL}
+      - SUPABASE_KEY=${SUPABASE_KEY:-${SUPABASE_SERVICE_ROLE_KEY}}
+      - SUPABASE_SERVICE_ROLE_KEY=${SUPABASE_SERVICE_ROLE_KEY:-${SUPABASE_KEY}}
+      - RABBITMQ_URL=amqp://admin:admin@rabbitmq:5672
+    depends_on:
+      - rabbitmq
+    networks:
+      - internal_net
+
+  nginx:
+    image: nginx:alpine
+    container_name: api-gateway
+    restart: unless-stopped
+    ports:
+      - "8080:80" # expose gateway on host 8080
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      - users-service
+      - sales-service
+      - tickets-service
+      - inventario-service
+      - carrito-service
+      - cupones-service
+    networks:
+      - internal_net
+
+volumes:
+  mongo_data:
+
+networks:
+  internal_net:
+    driver: bridge

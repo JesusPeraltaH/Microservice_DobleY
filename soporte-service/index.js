@@ -4,6 +4,7 @@ require('dotenv').config();
 
 const ticketRoutes = require('./src/routes/ticketRoutes');
 const { errorHandler } = require('./src/middleware/errorHandler');
+const { connectRabbitMQ, publishEvent, consumeEvents } = require('./src/rabbitmq');
 
 const app = express();
 const PORT = process.env.PORT || 3005;
@@ -37,7 +38,22 @@ app.use((req, res) => {
 });
 
 app.listen(PORT, () => {
-    console.log(`🎫 Support Tickets Service running on port ${PORT}`);
-    console.log(`📊 Health check: http://localhost:${PORT}/health`);
-    console.log(`🔗 API Base URL: http://localhost:${PORT}/api/tickets`);
+    console.log(` Support Tickets Service running on port ${PORT}`);
+    console.log(`  Health check: http://localhost:${PORT}/health`);
+    console.log(`   API Base URL: http://localhost:${PORT}/api/tickets`);
 });
+
+// Initialize RabbitMQ on startup
+(async () => {
+  try {
+    await connectRabbitMQ();
+    await publishEvent('micro.events', 'tickets.started', { service: 'soporte-service', timestamp: new Date().toISOString() });
+
+    // Example consumer: log all micro.events
+    await consumeEvents('micro.events', 'tickets.logs', '#', async (data, fields) => {
+      console.log(`[tickets] event received: ${fields.routingKey}`, data);
+    });
+  } catch (err) {
+    console.error('RabbitMQ init error:', err.message);
+  }
+})();

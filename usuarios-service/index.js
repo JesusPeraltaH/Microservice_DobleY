@@ -4,6 +4,7 @@ const cors = require('cors');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 require('dotenv').config();
+const { connectRabbitMQ, publishEvent } = require('./src/rabbitmq');
 
 const app = express();
 const PORT = process.env.PORT || 3003;
@@ -200,3 +201,13 @@ app.get('/health', (req, res) => {
 app.listen(PORT, () => {
   console.log(`Servicio de usuarios ejecutándose en puerto ${PORT}`);
 });
+
+// Initialize RabbitMQ on startup
+(async () => {
+  try {
+    await connectRabbitMQ();
+    await publishEvent('micro.events', 'users.started', { service: 'usuarios-service', timestamp: new Date().toISOString() });
+  } catch (err) {
+    console.error('RabbitMQ init error:', err.message);
+  }
+})();

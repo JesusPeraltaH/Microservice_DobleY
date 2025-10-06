@@ -2,6 +2,7 @@ const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
 require('dotenv').config();
+const { connectRabbitMQ, publishEvent } = require('./src/rabbitmq');
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -144,9 +145,17 @@ app.get('/health', (req, res) => {
     timestamp: new Date().toISOString()
   });
 });
-
 app.listen(PORT, () => {
   console.log(`🏪 Inventario-Service ejecutándose en puerto ${PORT}`);
   console.log(`📦 Endpoint stock: PATCH http://localhost:${PORT}/products/:id/stock`);
   console.log(`📋 Ver productos: GET http://localhost:${PORT}/products`);
 });
+// Initialize RabbitMQ on startup
+(async () => {
+  try {
+    await connectRabbitMQ();
+    await publishEvent('micro.events', 'inventory.started', { service: 'inventario-service', timestamp: new Date().toISOString() });
+  } catch (err) {
+    console.error('RabbitMQ init error:', err.message);
+  }
+})();

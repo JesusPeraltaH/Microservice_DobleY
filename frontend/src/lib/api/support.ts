@@ -59,11 +59,21 @@ class SupportAPI {
     private async request(endpoint: string, options: RequestInit = {}) {
         const url = `${API_BASE_URL}/api/tickets${endpoint}`;
 
+        // Get JWT token from localStorage
+        const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
+
+        const headers: Record<string, string> = {
+            'Content-Type': 'application/json',
+            ...options.headers as Record<string, string>,
+        };
+
+        // Add Authorization header if token exists
+        if (token) {
+            headers['Authorization'] = `Bearer ${token}`;
+        }
+
         const response = await fetch(url, {
-            headers: {
-                'Content-Type': 'application/json',
-                ...options.headers,
-            },
+            headers,
             ...options,
         });
 
@@ -83,6 +93,15 @@ class SupportAPI {
         return response;
     }
 
+    // Test method for development (no auth required)
+    async createTicketTest(data: CreateTicketData): Promise<SupportTicket> {
+        const response = await this.request('/test', {
+            method: 'POST',
+            body: JSON.stringify(data),
+        });
+        return response;
+    }
+
     async getTickets(filters?: TicketFilters): Promise<{ tickets: SupportTicket[]; total: number }> {
         const params = new URLSearchParams();
         if (filters?.usuario) params.append('usuario', filters.usuario);
@@ -93,6 +112,23 @@ class SupportAPI {
 
         const query = params.toString() ? `?${params.toString()}` : '';
         const response = await this.request(`${query}`);
+        return {
+            tickets: response.tickets || response,
+            total: response.total || response.length
+        };
+    }
+
+    // Test method for development (no auth required)
+    async getTicketsTest(filters?: TicketFilters): Promise<{ tickets: SupportTicket[]; total: number }> {
+        const params = new URLSearchParams();
+        if (filters?.usuario) params.append('usuario', filters.usuario);
+        if (filters?.estado) params.append('estado', filters.estado);
+        if (filters?.tipo) params.append('tipo', filters.tipo);
+        if (filters?.limit) params.append('limit', filters.limit.toString());
+        if (filters?.offset) params.append('offset', filters.offset.toString());
+
+        const query = params.toString() ? `?${params.toString()}` : '';
+        const response = await this.request(`/test${query}`);
         return {
             tickets: response.tickets || response,
             total: response.total || response.length

@@ -3,6 +3,7 @@ const mongoose = require('mongoose');
 const cors = require('cors');
 const axios = require('axios');
 require('dotenv').config();
+const { connectRabbitMQ, publishEvent } = require('./src/rabbitmq');
 
 const app = express();
 const PORT = process.env.PORT || 3006;
@@ -196,3 +197,13 @@ app.get('/api/test', (req, res) => {
 app.listen(PORT, () => {
   console.log(`🚀 Order-Service ejecutándose en puerto ${PORT}`);
 });
+
+// Initialize RabbitMQ on startup
+(async () => {
+  try {
+    await connectRabbitMQ();
+    await publishEvent('micro.events', 'sales.started', { service: 'orders-service', timestamp: new Date().toISOString() });
+  } catch (err) {
+    console.error('RabbitMQ init error:', err.message);
+  }
+})();
