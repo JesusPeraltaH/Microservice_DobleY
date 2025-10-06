@@ -22,6 +22,12 @@ services:
     ports:
       - "5672:5672" # AMQP
       - "15672:15672" # Management UI
+    healthcheck:
+      test: rabbitmq-diagnostics -q ping
+      interval: 30s
+      timeout: 30s
+      retries: 5
+      start_period: 60s
     networks:
       - internal_net
 
@@ -37,8 +43,18 @@ services:
       - PORT=3003
       - RABBITMQ_URL=amqp://admin:admin@rabbitmq:5672
     depends_on:
-      - mongo
-      - rabbitmq
+      mongo:
+        condition: service_started
+      rabbitmq:
+        condition: service_healthy
+    ports:
+      - "3003:3003"  # Expose for direct testing (optional)
+    healthcheck:
+      test: ["CMD", "node", "-e", "require('http').get('http://localhost:3003/health', res => process.exit(res.statusCode === 200 ? 0 : 1))"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
     networks:
       - internal_net
 
@@ -53,8 +69,10 @@ services:
       - PORT=3004
       - RABBITMQ_URL=amqp://admin:admin@rabbitmq:5672
     depends_on:
-      - mongo
-      - rabbitmq
+      mongo:
+        condition: service_started
+      rabbitmq:
+        condition: service_healthy
     networks:
       - internal_net
 
@@ -72,7 +90,8 @@ services:
       - PORT=3005
       - RABBITMQ_URL=amqp://admin:admin@rabbitmq:5672
     depends_on:
-      - rabbitmq
+      rabbitmq:
+        condition: service_healthy
     networks:
       - internal_net
 
@@ -87,8 +106,10 @@ services:
       - PORT=3001
       - RABBITMQ_URL=amqp://admin:admin@rabbitmq:5672
     depends_on:
-      - mongo
-      - rabbitmq
+      mongo:
+        condition: service_started
+      rabbitmq:
+        condition: service_healthy
     networks:
       - internal_net
 
@@ -104,9 +125,12 @@ services:
       - PORT=3102
       - RABBITMQ_URL=amqp://admin:admin@rabbitmq:5672
     depends_on:
-      - mongo
-      - inventario-service
-      - rabbitmq
+      mongo:
+        condition: service_started
+      inventario-service:
+        condition: service_started
+      rabbitmq:
+        condition: service_healthy
     networks:
       - internal_net
 
@@ -117,13 +141,14 @@ services:
     env_file:
       - ./cupones-service/.env
     environment:
-      - PORT=3004
+      - PORT=3006  # Changed from 3004 to avoid conflict
       - SUPABASE_URL=${SUPABASE_URL}
       - SUPABASE_KEY=${SUPABASE_KEY:-${SUPABASE_SERVICE_ROLE_KEY}}
       - SUPABASE_SERVICE_ROLE_KEY=${SUPABASE_SERVICE_ROLE_KEY:-${SUPABASE_KEY}}
       - RABBITMQ_URL=amqp://admin:admin@rabbitmq:5672
     depends_on:
-      - rabbitmq
+      rabbitmq:
+        condition: service_healthy
     networks:
       - internal_net
 
@@ -136,12 +161,18 @@ services:
     volumes:
       - ./nginx.conf:/etc/nginx/nginx.conf:ro
     depends_on:
-      - users-service
-      - sales-service
-      - tickets-service
-      - inventario-service
-      - carrito-service
-      - cupones-service
+      users-service:
+        condition: service_started
+      sales-service:
+        condition: service_started
+      tickets-service:
+        condition: service_started
+      inventario-service:
+        condition: service_started
+      carrito-service:
+        condition: service_started
+      cupones-service:
+        condition: service_started
     networks:
       - internal_net
 
