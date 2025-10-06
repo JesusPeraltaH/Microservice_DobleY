@@ -1,6 +1,7 @@
 const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
+const axios = require('axios');
 require('dotenv').config();
 const { connectRabbitMQ, publishEvent } = require('./src/rabbitmq');
 
@@ -39,6 +40,23 @@ const orderSchema = new mongoose.Schema({
 });
 
 const Order = mongoose.model('Order', orderSchema);
+
+// Health check endpoint
+app.get('/health', async (req, res) => {
+  try {
+    const dbStatus = mongoose.connection.readyState === 1 ? 'connected' : 'disconnected';
+    const ordersCount = await Order.countDocuments();
+    res.json({ 
+      status: 'OK', 
+      service: 'carrito-service',
+      database: dbStatus, 
+      totalOrders: ordersCount, 
+      timestamp: new Date().toISOString() 
+    });
+  } catch (error) {
+    res.status(500).json({ status: 'ERROR', error: error.message });
+  }
+});
 
 // Rutas
 // Obtener todas las órdenes
